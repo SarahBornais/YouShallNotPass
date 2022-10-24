@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.Mvc;
 using YouShallNotPassBackend.DataContracts;
 using YouShallNotPassBackend.Exceptions;
 using YouShallNotPassBackend.Storage;
@@ -6,6 +7,7 @@ using YouShallNotPassBackend.Storage;
 namespace YouShallNotPassBackend.Controllers
 {
     [Route("vault")]
+    [EnableCors("AllowAnyOrigin")]
     public class VaultController : Controller
     {
         private readonly ILogger logger;
