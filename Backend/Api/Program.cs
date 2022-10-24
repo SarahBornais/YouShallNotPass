@@ -27,7 +27,13 @@ builder.Services.AddSwaggerGen();
 string entriesLocation = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "entries");
 Directory.CreateDirectory(entriesLocation);
 
-Crypto crypto = new(builder.Configuration["ServerKey"]);
+string serverKey = builder.Configuration["ServerKey"];
+if (serverKey == null)
+{
+    throw new InvalidOperationException("ServerKey is not defined. For local deployments, see README for instructions.");
+}
+
+Crypto crypto = new(serverKey);
 Storage storage = new(entriesLocation);
 StorageManager storageManager = new(storage, crypto);
 
