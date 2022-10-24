@@ -69,7 +69,7 @@ namespace YouShallNotPassBackendApiTests
         [TestMethod]
         public async Task TestExpirationDate()
         {
-            Content content = GetContent(DateTime.Now.AddSeconds(2), 10);
+            Content content = GetContent(DateTime.Now.AddSeconds(5), 10);
 
             ContentKey? contentKey = await PostSuccess<Content, ContentKey>(path, content);
             ValidateContentKey(contentKey);
@@ -81,7 +81,7 @@ namespace YouShallNotPassBackendApiTests
                 CollectionAssert.AreEquivalent(content.Data, retreivedContent!.Data);
             }
 
-            Thread.Sleep(2000);
+            Thread.Sleep(5000);
             await GetFailure(path, contentKey!.ToQueryParameters(), HttpStatusCode.NotFound);
         }
 
