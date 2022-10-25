@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.Mvc;
 using YouShallNotPassBackend.DataContracts;
 using YouShallNotPassBackend.Exceptions;
 using YouShallNotPassBackend.Storage;
@@ -6,6 +7,7 @@ using YouShallNotPassBackend.Storage;
 namespace YouShallNotPassBackend.Controllers
 {
     [Route("vault")]
+    [EnableCors("AllowAnyOrigin")]
     public class VaultController : Controller
     {
         private readonly ILogger logger;
@@ -24,8 +26,14 @@ namespace YouShallNotPassBackend.Controllers
 
             if (contentKey == null)
             {
-                logger.LogInformation("{path}: Bad request because of null parameter", path);
-                return BadRequest();
+                logger.LogInformation("{path}: Bad request because of null content key parameter", path);
+                return BadRequest("Improperly formatted content key parameter");
+            }
+
+            if (contentKey.Key == null)
+            {
+                logger.LogInformation("{path}: Bad request because of null key parameter", path);
+                return BadRequest("Improperly formatted key in content key parameter");
             }
 
             try
@@ -62,10 +70,22 @@ namespace YouShallNotPassBackend.Controllers
         {
             string path = $"[POST] {Request.Path.Value}";
 
-            if (content == null || content.Label == null || content.Data == null)
+            if (content == null)
             {
-                logger.LogInformation("{path}: Bad request because of null parameter, label {label}", path, content?.Label);
-                return BadRequest();
+                logger.LogInformation("{path}: Bad request because of null content parameter, label {label}", path, content?.Label);
+                return BadRequest("Improperly formated json for content parameter");
+            }
+
+            if (content.Label == null)
+            {
+                logger.LogInformation("{path}: Bad request because of null label parameter, label {label}", path, content?.Label);
+                return BadRequest("Improperly formated label in content parameter");
+            }
+
+            if (content.Data == null)
+            {
+                logger.LogInformation("{path}: Bad request because of null data parameter, label {label}", path, content?.Label);
+                return BadRequest("Improperly formated data in content parameter");
             }
 
             try
