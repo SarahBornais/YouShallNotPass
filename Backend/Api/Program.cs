@@ -1,6 +1,7 @@
 using YouShallNotPassBackend.Storage;
 using YouShallNotPassBackend.Cryptography;
 using Microsoft.Extensions.Logging.AzureAppServices;
+using Microsoft.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,7 +18,7 @@ builder.Services.Configure<AzureFileLoggerOptions>(options =>
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAnyOrigin", builder => builder.AllowAnyOrigin());
+    options.AddPolicy("AllowAnyOrigin", builder => builder.AllowAnyOrigin().WithHeaders(HeaderNames.ContentType));
 });
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
