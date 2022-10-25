@@ -18,7 +18,7 @@ builder.Services.Configure<AzureFileLoggerOptions>(options =>
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAnyOrigin", builder => builder.AllowAnyOrigin().WithHeaders(HeaderNames.ContentType));
+    options.AddPolicy("AllowAnyOrigin", builder => builder.AllowAnyOrigin().AllowAnyMethod().WithHeaders(HeaderNames.ContentType));
 });
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
