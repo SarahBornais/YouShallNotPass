@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { Alert, Button, Col, Form, Modal, Row } from "react-bootstrap";
-import Moment from "react-moment";
 import moment from 'moment';
 import * as Icon from 'react-bootstrap-icons';
 
 function UploadPage() {
     const defaultExpiration = moment();
-    console.log(moment().format());
     defaultExpiration.add(1, "days");
     const [secretData, setSecretData] = useState({
         contentType: 0,
@@ -28,7 +26,7 @@ function UploadPage() {
         const body: any = {
             "contentType": 0,
             "label": secretData.label,
-            "expirationDate": new Date(`${secretData.expirationDate} ${secretData.expirationTime}`).toISOString(),
+            "expirationDate": moment(`${secretData.expirationDate} ${secretData.expirationTime}`, 'YYYY-MM-DD HH:mm').toDate().toISOString(),
             "data": btoa(secretData["data"])
         };
         if (secretData.maxAccessCount.length > 0) {
@@ -37,7 +35,6 @@ function UploadPage() {
             body["maxAccessCount"] = 100000;
         }
         
-        console.log(JSON.stringify(body));
         fetch(`https://youshallnotpassbackend.azurewebsites.net/vault`, {
             method: "POST",
             headers: {
@@ -47,7 +44,6 @@ function UploadPage() {
         })
             .then((response) => response.json())
             .then((data) => {
-                console.log(JSON.stringify(data))
                 setId(data.id);
                 setKey(data.key);
             })
@@ -55,7 +51,6 @@ function UploadPage() {
     };
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        console.log(event.target.value);
         setSecretData({ ...secretData, [event.target.name]: event.target.value });
     };
 
