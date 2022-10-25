@@ -1,7 +1,7 @@
 # YouShallNotPass
 
 ## Backend
-Backend is running on Azure at https://l.messenger.com/l.php?u=https%3A%2F%2Fyoushallnotpassbackend.azurewebsites.net%2F&h=AT1WGoO_nLa8Mv21u3fJzJ0510NY0cCwH6jesSxW5IFSv5C5_EkIUKs65aYXHlkXszfU3--uCqgD6Q5DzA8eOKewtq6Cs9LqnQq3sVDTDsJYxF9S5TSFp3EVs_1js_LxgqJ3oA
+Backend is running on Azure at https://youshallnotpassbackend.azurewebsites.net
 
 To run locally,
 1. First, install [.Net 6](https://dotnet.microsoft.com/en-us/download)
