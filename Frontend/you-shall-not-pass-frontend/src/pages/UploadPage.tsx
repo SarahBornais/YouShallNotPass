@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Alert, Button, Col, Form, Modal, Row } from "react-bootstrap";
 import Moment from "react-moment";
 import moment from 'moment';
+import * as Icon from 'react-bootstrap-icons';
 
 function UploadPage() {
     const defaultExpiration = moment();
@@ -24,24 +25,25 @@ function UploadPage() {
 
     const uploadSecret = (e: any) => {
         e.preventDefault();
-        const body = {
-            contentType: 0,
-            label: "",
-            expirationDate: defaultExpiration.format("yyyy-MM-DD"),
-            expirationTime: defaultExpiration.format("HH:mm"),
-            maxAccessCount: "",
-            data: ""
+        const body: any = {
+            "contentType": 0,
+            "label": secretData.label,
+            "expirationDate": new Date(`${secretData.expirationDate} ${secretData.expirationTime}`).toISOString(),
+            "data": btoa(secretData["data"])
         };
-        Object.assign(body, secretData);
-        body["expirationDate"] = new Date(`${secretData.expirationDate} ${secretData.expirationTime}`).toISOString()
-        body["data"] = btoa(body["data"]);
+        if (secretData.maxAccessCount.length > 0) {
+            body["maxAccessCount"] = secretData.maxAccessCount;
+        } else {
+            body["maxAccessCount"] = 100000;
+        }
+        
         console.log(JSON.stringify(body));
-        fetch(`https://youshallnotpassbackend.azurewebsites.net/vault`, { 
+        fetch(`https://youshallnotpassbackend.azurewebsites.net/vault`, {
             method: "POST",
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(body) 
+            body: JSON.stringify(body)
         })
             .then((response) => response.json())
             .then((data) => {
@@ -57,14 +59,42 @@ function UploadPage() {
         setSecretData({ ...secretData, [event.target.name]: event.target.value });
     };
 
+    const [validated, setValidated] = useState(false);
+
+    const handleSubmit = (event: any) => {
+        setValidated(true);
+        const form = event.currentTarget;
+        if (form.checkValidity() === false) {
+            event.preventDefault();
+            event.stopPropagation();
+        } else {
+            uploadSecret(event);
+        }
+    };
+
+    function copyLink() {
+        navigator.clipboard.writeText(`https://youshallnotpass.org/view?id=${id}&key=${key}`);
+        document.getElementById("copy-success")?.removeAttribute("hidden");
+      }
+
     return (
         <div>
             <h1>Upload Secure Data</h1>
             <hr />
-            <Form>
+            <Form noValidate validated={validated} onSubmit={handleSubmit}>
                 <Form.Group className="mb-3">
                     <Form.Label>Description</Form.Label>
-                    <Form.Control type="text" id="labelInput" placeholder="My Secret File" name="label" value={secretData.label} onChange={handleChange} />
+                    <Form.Control
+                        required
+                        type="text"
+                        id="labelInput"
+                        placeholder="My Secret File"
+                        name="label"
+                        value={secretData.label}
+                        onChange={handleChange} />
+                    <Form.Control.Feedback type="invalid">
+                        Please enter a description
+                    </Form.Control.Feedback>
                 </Form.Group>
 
                 <Form.Group className="mb-3" controlId="expiryDateInput">
@@ -74,7 +104,7 @@ function UploadPage() {
                             <Form.Control type="date" name="expirationDate" value={secretData.expirationDate} onChange={handleChange} />
                         </Col>
                         <Col>
-                            <Form.Control type="time" name="expirationTime" value={secretData.expirationTime} onChange={handleChange}  />
+                            <Form.Control type="time" name="expirationTime" value={secretData.expirationTime} onChange={handleChange} />
                         </Col>
                     </Row>
                 </Form.Group>
@@ -86,10 +116,13 @@ function UploadPage() {
 
                 <Form.Group className="mb-3" controlId="secretInput">
                     <Form.Label>Secret</Form.Label>
-                    <Form.Control as="textarea" rows={3} name="data" value={secretData.data} onChange={handleChange} />
+                    <Form.Control required as="textarea" rows={3} name="data" value={secretData.data} onChange={handleChange} />
+                    <Form.Control.Feedback type="invalid">
+                        Please enter a secret
+                    </Form.Control.Feedback>
                 </Form.Group>
 
-                <Button variant="primary" type="submit" onClick={uploadSecret}>
+                <Button variant="primary" type="submit">
                     Get Secure Link
                 </Button>
             </Form>
@@ -102,11 +135,14 @@ function UploadPage() {
                 <Modal.Body>
                     <Alert variant="primary">
                         <a href={`/view?id=${id}&key=${key}`}>https://youshallnotpass.org/view?id={id}&key={key}</a>
-                    </Alert> 
+                    </Alert>
+                    
                 </Modal.Body>
 
                 <Modal.Footer>
-                    <Button variant="primary" onClick={handleClose}>Close</Button>
+                <p hidden id="copy-success" className="copy-success"><Icon.CheckCircleFill color="green" size={16} /> Coppied to clipboard</p>
+                <Button variant="default" onClick={handleClose}>Close</Button>
+                    <Button variant="primary" onClick={copyLink}>Copy</Button>
                 </Modal.Footer>
             </Modal>
         </div>
