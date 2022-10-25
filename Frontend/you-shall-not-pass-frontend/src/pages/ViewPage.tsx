@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Button, Card, Col, Container, Modal, Row } from "react-bootstrap";
+import { Button, Card, Col, Container, Modal, Row, Spinner } from "react-bootstrap";
 import { useParams, useSearchParams } from "react-router-dom";
 
 interface SecretResponse {
@@ -11,6 +11,7 @@ interface SecretResponse {
 }
 
 function ViewPage() {
+    const [loading, setLoading] = useState(true);
     const [show, setShow] = useState(false);
     const confirmDelete = () => setShow(true);
     const handleClose = () => setShow(false);
@@ -19,16 +20,12 @@ function ViewPage() {
     const id = searchParams.get("id");
     const key = searchParams.get("key");
 
-    //let { id, key } = useParams();
-
-    //const id = "3f5ca3f9-7390-4883-b16f-ea22e3383227";
-    //const key = "B5E93D22E68C99C9E28ACA8A570307A5";
     const url = "https://youshallnotpassbackend.azurewebsites.net/vault";
 
     const [label, setLabel] = useState("Secret Not Found");
     const [secret, setSecret] = useState("secret not found");
     const [timesAccessed, setTimesAccessed] = useState(0);
-    const [maxAccesses, setMaxAccesses] = useState(0);
+    const [maxAccesses, setMaxAccesses] = useState("0");
     const [expiration, setExpiration] = useState("");
 
     useEffect(() => {
@@ -39,12 +36,17 @@ function ViewPage() {
             setLabel(data.label);
             setSecret(atob(data.data));
             setTimesAccessed(data.timesAccessed);
-            setMaxAccesses(data.maxAccessCount);
+            setMaxAccesses(data.maxAccessCount >= 100000 ? "Unlimited" : data.maxAccessCount);
             setExpiration(new Date(data.expirationDate).toLocaleString());
+            setLoading(false);
         });
     }, []);
 
-    return (
+    return loading ? (
+        <div className="spin-container">
+            <Spinner animation="border" variant="primary" />
+        </div>
+    ) : (
         <div>
             <Container>
                 <Row className="header">
