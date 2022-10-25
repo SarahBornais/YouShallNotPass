@@ -98,9 +98,37 @@ img {
 }
 
 .btn-close {
-    visibility: hidden;
+    height: 16px;
+    width: 16px;
 }
 
 body {
     overflow-wrap: break-word;
+}
+
+.toast {
+    width: 500px;
+    max-width: 500px;
+}
+
+.alert-danger {
+    margin: 0;
+    width: 500px;
+}
+
+@media screen and (max-width: 500px) {
+    .toast {
+        width: 90vw;
+        max-width: 100vw;
+    }
+
+    .alert-danger {
+        margin: 0;
+        width: 90vw;
+        max-width: 100vw;
+    }
+}
+
+.error-message {
+    margin-bottom: 0px;
 }

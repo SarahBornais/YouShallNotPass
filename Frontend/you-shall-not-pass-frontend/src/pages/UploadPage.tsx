@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, Button, Col, Form, Modal, Row } from "react-bootstrap";
+import { Alert, Button, Col, Form, Modal, Row, Toast, ToastContainer } from "react-bootstrap";
 import moment from 'moment';
 import * as Icon from 'react-bootstrap-icons';
 
@@ -14,6 +14,10 @@ function UploadPage() {
         maxAccessCount: "",
         data: ""
     });
+
+    const [errorMessage, setErrorMesssage] = useState("Something went wrong unexpectedly. Please try again.");
+    const [toastShow, setToastShow] = useState(false);
+    const handleToastClose = () => setToastShow(false);
 
     const [show, setShow] = useState(false);
     const handleClose = () => setShow(false);
@@ -42,12 +46,16 @@ function UploadPage() {
             },
             body: JSON.stringify(body)
         })
-            .then((response) => response.json())
-            .then((data) => {
-                setId(data.id);
-                setKey(data.key);
-            })
-            .finally(() => setShow(true));
+        .then((response) => response.json())
+        .then((data) => {
+            setId(data.id);
+            setKey(data.key);
+            setShow(true);
+        })
+        .catch(() => {
+            setErrorMesssage("Unexpected error saving secret. Please try again.");
+            setToastShow(true);
+        });
     };
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -106,7 +114,12 @@ function UploadPage() {
 
                 <Form.Group className="mb-3">
                     <Form.Label>Maximum Number of Accesses</Form.Label>
-                    <Form.Control type="text" placeholder="Unlimited" name="maxAccessCount" value={secretData.maxAccessCount} onChange={handleChange} />
+                    <Form.Control 
+                        type="number" 
+                        placeholder="Unlimited" 
+                        name="maxAccessCount" 
+                        value={secretData.maxAccessCount} 
+                        onChange={handleChange} />
                 </Form.Group>
 
                 <Form.Group className="mb-3" controlId="secretInput">
@@ -122,24 +135,30 @@ function UploadPage() {
                 </Button>
             </Form>
 
-            <Modal show={show} dialogClassName="modal-90w">
+            <Modal show={show} dialogClassName="modal-90w" onHide={handleClose}>
                 <Modal.Header closeButton>
                     <Modal.Title>Secure Link</Modal.Title>
                 </Modal.Header>
-
                 <Modal.Body>
                     <Alert variant="primary">
                         <a href={`/view?id=${id}&key=${key}`}>https://youshallnotpass.org/view?id={id}&key={key}</a>
                     </Alert>
-                    
                 </Modal.Body>
-
                 <Modal.Footer>
                 <p hidden id="copy-success" className="copy-success"><Icon.CheckCircleFill color="green" size={16} /> Coppied to clipboard</p>
                 <Button variant="default" onClick={handleClose}>Close</Button>
                     <Button variant="primary" onClick={copyLink}>Copy</Button>
                 </Modal.Footer>
             </Modal>
+
+            <ToastContainer className="p-3" position="top-center">
+                <Toast show={toastShow}>
+                    <Alert variant="danger" dismissible onClose={handleToastClose}>
+                        <Alert.Heading>Error</Alert.Heading>
+                        <p className="error-message">{errorMessage}</p>
+                    </Alert>
+                </Toast>
+            </ToastContainer>
         </div>
     )
 }

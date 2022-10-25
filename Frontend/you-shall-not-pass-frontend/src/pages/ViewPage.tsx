@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Card, Col, Container, Modal, Row, Spinner } from "react-bootstrap";
+import { Alert, Button, Card, Col, Container, Modal, Row, Spinner, Toast, ToastContainer } from "react-bootstrap";
 import { useSearchParams } from "react-router-dom";
 
 function ViewPage() {
@@ -7,6 +7,10 @@ function ViewPage() {
     const [show, setShow] = useState(false);
     const confirmDelete = () => setShow(true);
     const handleClose = () => setShow(false);
+
+    const [errorMessage, setErrorMesssage] = useState("Unexpected error. Please try again.");
+    const [toastShow, setToastShow] = useState(false);
+    const handleToastClose = () => setToastShow(false);
 
     const [searchParams] = useSearchParams();
     const id = searchParams.get("id");
@@ -20,16 +24,30 @@ function ViewPage() {
 
     useEffect(() => {
         fetch(`https://youshallnotpassbackend.azurewebsites.net/vault?id=${id}&key=${key}`)
-        .then((response) => response.json())
-        .then((data) => {
-            setLabel(data.label);
-            setSecret(atob(data.data));
-            setTimesAccessed(data.timesAccessed);
-            setMaxAccesses(data.maxAccessCount >= 100000 ? "Unlimited" : data.maxAccessCount);
-            setExpiration(new Date(data.expirationDate).toLocaleString());
-            setLoading(false);
-        });
+            .then((response) => response.json())
+            .then((data) => {
+                setLabel(data.label);
+                setSecret(atob(data.data));
+                setTimesAccessed(data.timesAccessed);
+                setMaxAccesses(data.maxAccessCount >= 100000 ? "Unlimited" : data.maxAccessCount);
+                setExpiration(new Date(data.expirationDate).toLocaleString());
+                setLoading(false);
+            })
+            .catch(() => {
+                setErrorMesssage("Unexpected error fetching secret. Please try again.");
+                setToastShow(true);
+            })
+            .finally(() => setShow(false));
     }, [id, key]);
+
+    const handleDelete = () => {
+        fetch(`https://youshallnotpassbackend.azurewebsites.net/vault?id=${id}`, { method: "DELETE" })
+        .catch((error) => {
+            setErrorMesssage("Unexpected error deleting secret. Please try again.");
+            setToastShow(true);
+        })
+        .finally(() => setShow(false));
+    };
 
     return loading ? (
         <div className="spin-container">
@@ -58,7 +76,7 @@ function ViewPage() {
                     </Col>
                 </Row>
             </Container>
-            
+
             <Card>
                 <Card.Body>
                     <Card.Text>
@@ -66,8 +84,8 @@ function ViewPage() {
                     </Card.Text>
                 </Card.Body>
             </Card>
-            
-            <Modal show={show}>
+
+            <Modal show={show} onHide={handleClose}>
                 <Modal.Header closeButton>
                     <Modal.Title>Confirm Deletion</Modal.Title>
                 </Modal.Header>
@@ -78,9 +96,17 @@ function ViewPage() {
 
                 <Modal.Footer>
                     <Button variant="secondary" onClick={handleClose}>Close</Button>
-                    <Button variant="danger" onClick={handleClose}>Delete</Button>
+                    <Button variant="danger" onClick={handleDelete}>Delete</Button>
                 </Modal.Footer>
             </Modal>
+            <ToastContainer className="p-3" position="top-center">
+                <Toast show={toastShow}>
+                    <Alert variant="danger" dismissible onClose={handleToastClose}>
+                        <Alert.Heading>Error</Alert.Heading>
+                        <p className="error-message">{errorMessage}</p>
+                    </Alert>
+                </Toast>
+            </ToastContainer>
         </div>
     )
 }
