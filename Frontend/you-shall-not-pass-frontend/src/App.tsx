@@ -1,26 +1,39 @@
-import React from 'react';
-import logo from './logo.svg';
 import './App.css';
+import {
+    BrowserRouter as Router,
+    Routes,
+    Route
+} from "react-router-dom";
+import UploadPage from './pages/UploadPage';
+import ViewPage from './pages/ViewPage';
+import { Container, Navbar } from 'react-bootstrap';
 
 function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    return (
+        <div>
+            <Navbar bg="dark" variant="dark">
+                <Container>
+                    <Navbar.Brand href="/">
+                        <img
+                        src="./logo.png"
+                        width="30"
+                        height="30"
+                        className="d-inline-block align-top"
+                        />
+                        You Shall Not Pass!
+                    </Navbar.Brand>
+                </Container>
+            </Navbar>
+            <Container>
+                <Router>
+                    <Routes>
+                        <Route path="/" element={<UploadPage />} />
+                        <Route path="/view" element={<ViewPage />} />
+                    </Routes>
+                </Router>
+            </Container>
+        </div>
+    );
 }
 
 export default App;
