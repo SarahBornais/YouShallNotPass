@@ -1,5 +1,7 @@
 # YouShallNotPass
 
+A secret sharing platform with expiring links. Up and running here: http://youshallnotpass.org
+
 ## Backend
 Backend is running on Azure at https://youshallnotpassbackend.azurewebsites.net
 
