@@ -48,7 +48,7 @@ h1 {
 
 .header > div:last-child {
     display: flex;
-    justify-content: end;
+    justify-content: flex-end;
     align-items: flex-end;
     padding-bottom: 20px;
     padding-right: 0px;
@@ -99,4 +99,8 @@ img {
 
 .btn-close {
     visibility: hidden;
+}
+
+body {
+    overflow-wrap: break-word;
 }

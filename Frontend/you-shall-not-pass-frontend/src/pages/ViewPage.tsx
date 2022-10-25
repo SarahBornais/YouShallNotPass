@@ -1,14 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, Card, Col, Container, Modal, Row, Spinner } from "react-bootstrap";
-import { useParams, useSearchParams } from "react-router-dom";
-
-interface SecretResponse {
-    label: string,
-    data: string,
-    timesAccessed: number,
-    maxAccessCount: number,
-    expirationDate: Date
-}
+import { useSearchParams } from "react-router-dom";
 
 function ViewPage() {
     const [loading, setLoading] = useState(true);
@@ -20,8 +12,6 @@ function ViewPage() {
     const id = searchParams.get("id");
     const key = searchParams.get("key");
 
-    const url = "https://youshallnotpassbackend.azurewebsites.net/vault";
-
     const [label, setLabel] = useState("Secret Not Found");
     const [secret, setSecret] = useState("secret not found");
     const [timesAccessed, setTimesAccessed] = useState(0);
@@ -32,7 +22,6 @@ function ViewPage() {
         fetch(`https://youshallnotpassbackend.azurewebsites.net/vault?id=${id}&key=${key}`)
         .then((response) => response.json())
         .then((data) => {
-            console.log(JSON.stringify(data));
             setLabel(data.label);
             setSecret(atob(data.data));
             setTimesAccessed(data.timesAccessed);
@@ -40,7 +29,7 @@ function ViewPage() {
             setExpiration(new Date(data.expirationDate).toLocaleString());
             setLoading(false);
         });
-    }, []);
+    }, [id, key]);
 
     return loading ? (
         <div className="spin-container">
