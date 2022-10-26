@@ -2,6 +2,7 @@ import moment from "moment";
 import { useEffect, useState } from "react";
 import { Alert, Button, Card, Col, Container, Modal, Row, Spinner, Toast, ToastContainer } from "react-bootstrap";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import "moment-timezone";
 
 function ViewPage() {
     const [loading, setLoading] = useState(true);
@@ -29,16 +30,13 @@ function ViewPage() {
     useEffect(() => {
         fetch(`https://youshallnotpassbackend.azurewebsites.net/vault?id=${id}&key=${key}`)
             .then((response) => {
-                console.log(response);
                 if (response.ok) {
                     return response.json();
                 } else {
-                    console.log("returning null");
                     return null;
                 }
             })
             .then((data) => {
-                console.log(data);
                 if (data === null) {
                     setNotFound(true);
                     setLoading(false);
@@ -47,7 +45,7 @@ function ViewPage() {
                     setSecret(atob(data.data));
                     setTimesAccessed(data.timesAccessed);
                     setMaxAccesses(data.maxAccessCount >= 100000 ? "Unlimited" : data.maxAccessCount);
-                    setExpiration(moment(new Date(data.expirationDate)).format("YYYY-MM-DD hh:MM A z"));
+                    setExpiration(moment(new Date(data.expirationDate)).tz(Intl.DateTimeFormat().resolvedOptions().timeZone).format("YYYY-MM-DD hh:mm A z"));
                     setLoading(false);
                 }
             })
