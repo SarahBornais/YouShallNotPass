@@ -9,11 +9,14 @@ function UploadPage() {
     const [secretData, setSecretData] = useState({
         contentType: 0,
         label: "",
+        expirationType: "24HOURS",
         expirationDate: defaultExpiration.format("yyyy-MM-DD"),
         expirationTime: defaultExpiration.format("HH:mm"),
         maxAccessCount: "",
         data: ""
     });
+
+    const [customDate, setCustomDate] = useState(false);
 
     const [errorMessage, setErrorMesssage] = useState("Something went wrong unexpectedly. Please try again.");
     const [toastShow, setToastShow] = useState(false);
@@ -38,7 +41,7 @@ function UploadPage() {
         } else {
             body["maxAccessCount"] = 100000;
         }
-        
+
         fetch(`https://youshallnotpassbackend.azurewebsites.net/vault`, {
             method: "POST",
             headers: {
@@ -46,20 +49,24 @@ function UploadPage() {
             },
             body: JSON.stringify(body)
         })
-        .then((response) => response.json())
-        .then((data) => {
-            setId(data.id);
-            setKey(data.key);
-            setShow(true);
-        })
-        .catch(() => {
-            setErrorMesssage("Unexpected error saving secret. Please try again.");
-            setToastShow(true);
-        });
+            .then((response) => response.json())
+            .then((data) => {
+                setId(data.id);
+                setKey(data.key);
+                setShow(true);
+            })
+            .catch(() => {
+                setErrorMesssage("Unexpected error saving secret. Please try again.");
+                setToastShow(true);
+            });
     };
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setSecretData({ ...secretData, [event.target.name]: event.target.value });
+        if (event.target.name === "expirationDate" || event.target.name === "expirationTime") {
+            console.log("Setting exp type")
+            secretData.expirationType = "CUSTOM";
+        }
     };
 
     const [validated, setValidated] = useState(false);
@@ -78,7 +85,39 @@ function UploadPage() {
     function copyLink() {
         navigator.clipboard.writeText(`https://youshallnotpass.org/view?id=${id}&key=${key}`);
         document.getElementById("copy-success")?.removeAttribute("hidden");
-      }
+    }
+
+    function onExpirySelectChange(event: any) {
+        console.log("exp change");
+        secretData.expirationType = event.target.value;
+        if (event.target.value === "CUSTOM") {
+            setCustomDate(true);
+        } else {
+            setCustomDate(false);
+            const expiration = moment();
+            switch (event.target.value) {
+                case "1HOUR":
+                    expiration.add(1, "hours");
+                    break;
+                case "24HOURS":
+                    expiration.add(1, "days");
+                    break;
+                case "48HOURS":
+                    expiration.add(2, "days");
+                    break;
+                case "WEEK":
+                    expiration.add(1, "weeks");
+                    break;
+                case "MONTH":
+                    expiration.add(1, "months");
+                    break;
+            }
+            setSecretData({ ...secretData, 
+                ["expirationDate"]: expiration.format("yyyy-MM-DD"), 
+                ["expirationTime"]: expiration.format("HH:mm") 
+            });
+        }
+    }
 
     return (
         <div>
@@ -100,25 +139,46 @@ function UploadPage() {
                     </Form.Control.Feedback>
                 </Form.Group>
 
-                <Form.Group className="mb-3" controlId="expiryDateInput">
-                    <Form.Label>Expiry Date</Form.Label>
+                <Form.Group className="mb-3">
+                    <Form.Label>Expiration</Form.Label>
                     <Row>
                         <Col>
-                            <Form.Control type="date" name="expirationDate" value={secretData.expirationDate} onChange={handleChange} />
+                            <Form.Select value={secretData.expirationType} onChange={onExpirySelectChange}>
+                                <option value="1HOUR">1 Hour</option>
+                                <option value="24HOURS">24 Hours</option>
+                                <option value="48HOURS">48 Hours</option>
+                                <option value="WEEK">1 Week</option>
+                                <option value="MONTH">1 Month</option>
+                                <option value="CUSTOM">Custom</option>
+                            </Form.Select>
                         </Col>
                         <Col>
-                            <Form.Control type="time" name="expirationTime" value={secretData.expirationTime} onChange={handleChange} />
+                            <Form.Control 
+                                id="expiryDateInput"
+                                type="date" 
+                                name="expirationDate" 
+                                value={secretData.expirationDate} 
+                                disabled={!customDate}
+                                onChange={handleChange} />
+                        </Col>
+                        <Col>
+                            <Form.Control 
+                                type="time" 
+                                name="expirationTime" 
+                                value={secretData.expirationTime} 
+                                disabled={!customDate}
+                                onChange={handleChange} />
                         </Col>
                     </Row>
                 </Form.Group>
 
                 <Form.Group className="mb-3">
                     <Form.Label>Maximum Number of Accesses</Form.Label>
-                    <Form.Control 
-                        type="number" 
-                        placeholder="Unlimited" 
-                        name="maxAccessCount" 
-                        value={secretData.maxAccessCount} 
+                    <Form.Control
+                        type="number"
+                        placeholder="Unlimited"
+                        name="maxAccessCount"
+                        value={secretData.maxAccessCount}
                         onChange={handleChange} />
                 </Form.Group>
 
@@ -145,8 +205,8 @@ function UploadPage() {
                     </Alert>
                 </Modal.Body>
                 <Modal.Footer>
-                <p hidden id="copy-success" className="copy-success"><Icon.CheckCircleFill color="green" size={16} /> Coppied to clipboard</p>
-                <Button variant="default" onClick={handleClose}>Close</Button>
+                    <p hidden id="copy-success" className="copy-success"><Icon.CheckCircleFill color="green" size={16} /> Coppied to clipboard</p>
+                    <Button variant="default" onClick={handleClose}>Close</Button>
                     <Button variant="primary" onClick={copyLink}>Copy</Button>
                 </Modal.Footer>
             </Modal>
