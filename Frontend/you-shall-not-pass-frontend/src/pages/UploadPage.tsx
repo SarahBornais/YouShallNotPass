@@ -71,7 +71,6 @@ function UploadPage() {
             } else {
                 setTimeMin("00:00");
             }
-            
         }
     };
 
@@ -175,6 +174,9 @@ function UploadPage() {
                                 value={secretData.expirationTime} 
                                 disabled={!customDate}
                                 onChange={handleChange} />
+                            <Form.Control.Feedback type="invalid">
+                                Ensure time is in the future
+                            </Form.Control.Feedback>
                         </Col>
                     </Row>
                 </Form.Group>
