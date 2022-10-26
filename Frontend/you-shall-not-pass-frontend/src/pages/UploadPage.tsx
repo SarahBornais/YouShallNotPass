@@ -17,6 +17,8 @@ function UploadPage() {
     });
 
     const [customDate, setCustomDate] = useState(false);
+    const [dateMin, setDateMin] = useState(moment().format("yyyy-MM-DD"));
+    const [timeMin, setTimeMin] = useState(moment().format("HH:mm"));
 
     const [errorMessage, setErrorMesssage] = useState("Something went wrong unexpectedly. Please try again.");
     const [toastShow, setToastShow] = useState(false);
@@ -63,9 +65,13 @@ function UploadPage() {
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setSecretData({ ...secretData, [event.target.name]: event.target.value });
-        if (event.target.name === "expirationDate" || event.target.name === "expirationTime") {
-            console.log("Setting exp type")
-            secretData.expirationType = "CUSTOM";
+        if (event.target.name === "expirationDate") {
+            if (moment(event.target.value).isSameOrBefore(moment())) {
+                setTimeMin(moment().format("HH:mm"));
+            } else {
+                setTimeMin("00:00");
+            }
+            
         }
     };
 
@@ -88,7 +94,6 @@ function UploadPage() {
     }
 
     function onExpirySelectChange(event: any) {
-        console.log("exp change");
         secretData.expirationType = event.target.value;
         if (event.target.value === "CUSTOM") {
             setCustomDate(true);
@@ -157,6 +162,7 @@ function UploadPage() {
                                 id="expiryDateInput"
                                 type="date" 
                                 name="expirationDate" 
+                                min={dateMin}
                                 value={secretData.expirationDate} 
                                 disabled={!customDate}
                                 onChange={handleChange} />
@@ -165,6 +171,7 @@ function UploadPage() {
                             <Form.Control 
                                 type="time" 
                                 name="expirationTime" 
+                                min={timeMin}
                                 value={secretData.expirationTime} 
                                 disabled={!customDate}
                                 onChange={handleChange} />
