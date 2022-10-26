@@ -1,3 +1,4 @@
+import moment from "moment";
 import { useEffect, useState } from "react";
 import { Alert, Button, Card, Col, Container, Modal, Row, Spinner, Toast, ToastContainer } from "react-bootstrap";
 import { useSearchParams } from "react-router-dom";
@@ -30,7 +31,7 @@ function ViewPage() {
                 setSecret(atob(data.data));
                 setTimesAccessed(data.timesAccessed);
                 setMaxAccesses(data.maxAccessCount >= 100000 ? "Unlimited" : data.maxAccessCount);
-                setExpiration(new Date(data.expirationDate).toLocaleString());
+                setExpiration(moment(new Date(data.expirationDate)).format("YYYY-MM-DD hh:MM A z"));
                 setLoading(false);
             })
             .catch(() => {
