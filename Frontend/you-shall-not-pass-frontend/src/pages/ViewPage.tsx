@@ -1,10 +1,11 @@
 import moment from "moment";
 import { useEffect, useState } from "react";
 import { Alert, Button, Card, Col, Container, Modal, Row, Spinner, Toast, ToastContainer } from "react-bootstrap";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 function ViewPage() {
     const [loading, setLoading] = useState(true);
+    const [notFound, setNotFound] = useState(false);
     const [show, setShow] = useState(false);
     const confirmDelete = () => setShow(true);
     const handleClose = () => setShow(false);
@@ -23,16 +24,32 @@ function ViewPage() {
     const [maxAccesses, setMaxAccesses] = useState("0");
     const [expiration, setExpiration] = useState("");
 
+    const navigate = useNavigate();
+
     useEffect(() => {
         fetch(`https://youshallnotpassbackend.azurewebsites.net/vault?id=${id}&key=${key}`)
-            .then((response) => response.json())
+            .then((response) => {
+                console.log(response);
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    console.log("returning null");
+                    return null;
+                }
+            })
             .then((data) => {
-                setLabel(data.label);
-                setSecret(atob(data.data));
-                setTimesAccessed(data.timesAccessed);
-                setMaxAccesses(data.maxAccessCount >= 100000 ? "Unlimited" : data.maxAccessCount);
-                setExpiration(moment(new Date(data.expirationDate)).format("YYYY-MM-DD hh:MM A z"));
-                setLoading(false);
+                console.log(data);
+                if (data === null) {
+                    setNotFound(true);
+                    setLoading(false);
+                } else {
+                    setLabel(data.label);
+                    setSecret(atob(data.data));
+                    setTimesAccessed(data.timesAccessed);
+                    setMaxAccesses(data.maxAccessCount >= 100000 ? "Unlimited" : data.maxAccessCount);
+                    setExpiration(moment(new Date(data.expirationDate)).format("YYYY-MM-DD hh:MM A z"));
+                    setLoading(false);
+                }
             })
             .catch(() => {
                 setErrorMesssage("Unexpected error fetching secret. Please try again.");
@@ -43,7 +60,10 @@ function ViewPage() {
 
     const handleDelete = () => {
         fetch(`https://youshallnotpassbackend.azurewebsites.net/vault?id=${id}`, { method: "DELETE" })
-        .catch((error) => {
+        .then(() => {
+            navigate("/");
+        })
+        .catch(() => {
             setErrorMesssage("Unexpected error deleting secret. Please try again.");
             setToastShow(true);
         })
@@ -54,6 +74,24 @@ function ViewPage() {
         <div className="spin-container">
             <Spinner animation="border" variant="primary" />
         </div>
+    ) : notFound ? (
+        <Container>
+            <Row className="header">
+                <Col xs={10}>
+                    <h1>Secret Not Found</h1>
+                </Col>
+                <Col></Col>
+            </Row>
+            <hr />
+            <p>Potential causes:</p>
+            <ul>
+                <li>The secret has expired</li>
+                <li>The maximum number of accesses for this secret has been reached</li>
+                <li>The secret has been manually deleted</li>
+                <li>The link contains a typo</li>
+            </ul>
+            <p>Please contact the sender for a new link.</p>
+        </Container>
     ) : (
         <div>
             <Container>
