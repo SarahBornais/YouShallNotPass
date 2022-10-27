@@ -2,6 +2,8 @@
 
 A secret sharing platform with expiring links. Up and running here: http://youshallnotpass.org
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/b06b9705-096f-49e4-adc8-78b6b75e7692/deploy-status)](https://app.netlify.com/sites/youshallnotpassfrontend/deploys)
+
 ## Backend
 Backend is running on Azure at https://youshallnotpassbackend.azurewebsites.net
 
