@@ -11,7 +11,6 @@ namespace YouShallNotPassBackendTests
     public class StorageTests
     {
         private readonly Storage storage;
-        
 
         public StorageTests()
         {
