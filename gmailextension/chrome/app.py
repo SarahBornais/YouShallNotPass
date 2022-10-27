@@ -1,3 +1,4 @@
+import win32api
 import os.path
 import base64
 from email.message import EmailMessage
@@ -13,6 +14,9 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from flask import Flask, render_template
+
+app = Flask(__name__)
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://mail.google.com/']
@@ -88,8 +92,15 @@ def create_message(original_draft):
     }
 
     return new_message
+    
+#Using the below, the popup message appears when the button is clicked on the webpage.
+#0x00001000 - This makes the popup appear over the browser window
+@app.route('/sendmail')
+def sendmail():
+    win32api.MessageBox(0, 'You have just run a python script on the button press!', 'Running a Python Script via Javascript', 0x00001000)
+    
+    # return render_template('index.html')
 
-def main():
     """Shows basic usage of the Gmail API.
     Lists the user's Gmail drafts.
     """
@@ -130,20 +141,20 @@ def main():
         new_message = create_message(original_draft)
         print(new_message)
         
-        # new_draft = service.users().drafts().update(
-        #     userId='me', 
-        #     id = original_draft["id"],
-        #     body = new_message).execute()
+        new_draft = service.users().drafts().update(
+            userId='me', 
+            id = original_draft["id"],
+            body = new_message).execute()
 
         
-        # service.users().drafts().send(
-        #     userId='me',
-        #     body = new_draft).execute()
+        service.users().drafts().send(
+            userId='me',
+            body = new_draft).execute()
 
     except HttpError as error:
         # TODO(developer) - Handle errors from gmail API.
         print(f'An error occurred: {error}')
 
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    app.run(debug=True)
