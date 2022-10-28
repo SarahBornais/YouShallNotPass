@@ -4,6 +4,11 @@ import moment from 'moment';
 import * as Icon from 'react-bootstrap-icons';
 
 function UploadPage() {
+    const PDF_CONTENT = 0;
+    const IMAGE_CONTENT = 1;
+    const TEXT_CONTENT = 2;
+    const BASE_URL = "https://youshallnotpassbackend.azurewebsites.net/vault";
+
     const defaultExpiration = moment();
     defaultExpiration.add(1, "days");
     const [secretData, setSecretData] = useState({
@@ -13,12 +18,15 @@ function UploadPage() {
         expirationDate: defaultExpiration.format("yyyy-MM-DD"),
         expirationTime: defaultExpiration.format("HH:mm"),
         maxAccessCount: "",
-        data: ""
+        data: "",
+        fileData: ""
     });
 
     const [customDate, setCustomDate] = useState(false);
     const [dateMin, setDateMin] = useState(moment().format("yyyy-MM-DD"));
     const [timeMin, setTimeMin] = useState(moment().format("HH:mm"));
+
+    const [secretManualEntry, setSecretManualEntry] = useState(false);
 
     const [errorMessage, setErrorMesssage] = useState("Something went wrong unexpectedly. Please try again.");
     const [toastShow, setToastShow] = useState(false);
@@ -30,41 +38,12 @@ function UploadPage() {
     const [id, setId] = useState();
     const [key, setKey] = useState();
 
-    const uploadSecret = (e: any) => {
-        e.preventDefault();
-        const body: any = {
-            "contentType": 0,
-            "label": secretData.label,
-            "expirationDate": moment(`${secretData.expirationDate} ${secretData.expirationTime}`, 'YYYY-MM-DD HH:mm').toDate().toISOString(),
-            "data": btoa(secretData["data"])
-        };
-        if (secretData.maxAccessCount.length > 0) {
-            body["maxAccessCount"] = secretData.maxAccessCount;
-        } else {
-            body["maxAccessCount"] = 100000;
-        }
-
-        fetch(`https://youshallnotpassbackend.azurewebsites.net/vault`, {
-            method: "POST",
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(body)
-        })
-            .then((response) => response.json())
-            .then((data) => {
-                setId(data.id);
-                setKey(data.key);
-                setShow(true);
-            })
-            .catch(() => {
-                setErrorMesssage("Unexpected error saving secret. Please try again.");
-                setToastShow(true);
-            });
-    };
+    const [validated, setValidated] = useState(false);
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setSecretData({ ...secretData, [event.target.name]: event.target.value });
+        console.log(event.target.name);
+        console.log(secretData.data);
         if (event.target.name === "expirationDate") {
             if (moment(event.target.value).isSameOrBefore(moment())) {
                 setTimeMin(moment().format("HH:mm"));
@@ -74,25 +53,7 @@ function UploadPage() {
         }
     };
 
-    const [validated, setValidated] = useState(false);
-
-    const handleSubmit = (event: any) => {
-        setValidated(true);
-        const form = event.currentTarget;
-        if (form.checkValidity() === false) {
-            event.preventDefault();
-            event.stopPropagation();
-        } else {
-            uploadSecret(event);
-        }
-    };
-
-    function copyLink() {
-        navigator.clipboard.writeText(`https://youshallnotpass.org/view?id=${id}&key=${key}`);
-        document.getElementById("copy-success")?.removeAttribute("hidden");
-    }
-
-    function onExpirySelectChange(event: any) {
+    const onExpirySelectChange = (event: any) => {
         secretData.expirationType = event.target.value;
         if (event.target.value === "CUSTOM") {
             setCustomDate(true);
@@ -116,11 +77,80 @@ function UploadPage() {
                     expiration.add(1, "months");
                     break;
             }
-            setSecretData({ ...secretData, 
-                ["expirationDate"]: expiration.format("yyyy-MM-DD"), 
-                ["expirationTime"]: expiration.format("HH:mm") 
+            setSecretData({
+                ...secretData,
+                ["expirationDate"]: expiration.format("yyyy-MM-DD"),
+                ["expirationTime"]: expiration.format("HH:mm")
             });
         }
+    }
+
+    const onFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file: File = event.target!.files![0];
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const fileType = (reader.result as string).split(":")[1].split(";")[0];
+            setSecretData({
+                ...secretData,
+                ["fileData"]: (reader.result as string).split("base64,")[1],
+                ["contentType"]: fileType.includes("image") ? IMAGE_CONTENT : fileType.includes("pdf") ? PDF_CONTENT : TEXT_CONTENT
+            });
+        };
+        reader.readAsDataURL(file);
+    }
+
+    const toggleSecretManualEntry = () => {
+        setSecretManualEntry(!secretManualEntry);
+        setSecretData({...secretData, ["contentType"]: TEXT_CONTENT});
+    }
+
+    const handleSubmit = (event: any) => {
+        setValidated(true);
+        const form = event.currentTarget;
+        if (form.checkValidity() === false) {
+            event.preventDefault();
+            event.stopPropagation();
+        } else {
+            uploadSecret(event);
+        }
+    };
+
+    const uploadSecret = (e: any) => {
+        e.preventDefault();
+        const body: any = {
+            "contentType": secretData.contentType,
+            "label": secretData.label,
+            "expirationDate": moment(`${secretData.expirationDate} ${secretData.expirationTime}`, 'YYYY-MM-DD HH:mm').toDate().toISOString(),
+            "data": secretData.fileData.length > 0 ? secretData.fileData : btoa(secretData["data"])
+        };
+        if (secretData.maxAccessCount.length > 0) {
+            body["maxAccessCount"] = secretData.maxAccessCount;
+        } else {
+            body["maxAccessCount"] = 100000;
+        }
+
+        fetch(BASE_URL, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body)
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                setId(data.id);
+                setKey(data.key);
+                setShow(true);
+            })
+            .catch(() => {
+                setErrorMesssage("Unexpected error saving secret. Please try again.");
+                setToastShow(true);
+            });
+    };
+
+    const copyLink = () => {
+        navigator.clipboard.writeText(`https://youshallnotpass.org/view?id=${id}&key=${key}`);
+        document.getElementById("copy-success")?.removeAttribute("hidden");
     }
 
     return (
@@ -157,21 +187,21 @@ function UploadPage() {
                             </Form.Select>
                         </Col>
                         <Col>
-                            <Form.Control 
+                            <Form.Control
                                 id="expiryDateInput"
-                                type="date" 
-                                name="expirationDate" 
+                                type="date"
+                                name="expirationDate"
                                 min={dateMin}
-                                value={secretData.expirationDate} 
+                                value={secretData.expirationDate}
                                 disabled={!customDate}
                                 onChange={handleChange} />
                         </Col>
                         <Col>
-                            <Form.Control 
-                                type="time" 
-                                name="expirationTime" 
+                            <Form.Control
+                                type="time"
+                                name="expirationTime"
                                 min={timeMin}
-                                value={secretData.expirationTime} 
+                                value={secretData.expirationTime}
                                 disabled={!customDate}
                                 onChange={handleChange} />
                             <Form.Control.Feedback type="invalid">
@@ -193,10 +223,29 @@ function UploadPage() {
 
                 <Form.Group className="mb-3" controlId="secretInput">
                     <Form.Label>Secret</Form.Label>
-                    <Form.Control required as="textarea" rows={3} name="data" value={secretData.data} onChange={handleChange} />
+                    <Form.Control required
+                        type="file"
+                        accept=".png,.pdf"
+                        onChange={onFileUpload}
+                        hidden={secretManualEntry}
+                        disabled={secretManualEntry} />
+                    <Form.Control required
+                        as="textarea" rows={3}
+                        name="data"
+                        value={secretData.data}
+                        onChange={handleChange}
+                        disabled={!secretManualEntry}
+                        hidden={!secretManualEntry} />
                     <Form.Control.Feedback type="invalid">
                         Please enter a secret
                     </Form.Control.Feedback>
+                    <Form.Check
+                        type="switch"
+                        id="custom-switch"
+                        label="Enter secret text manually"
+                        checked={secretManualEntry}
+                        onChange={toggleSecretManualEntry}
+                    />
                 </Form.Group>
 
                 <Button variant="primary" type="submit">

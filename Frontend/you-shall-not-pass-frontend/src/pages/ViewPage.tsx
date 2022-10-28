@@ -5,6 +5,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import "moment-timezone";
 
 function ViewPage() {
+    const PDF_CONTENT = 0;
+    const IMAGE_CONTENT = 1;
+    const TEXT_CONTENT = 2;
+    const BASE_URL = "https://youshallnotpassbackend.azurewebsites.net/vault";
+
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
     const [show, setShow] = useState(false);
@@ -19,6 +24,7 @@ function ViewPage() {
     const id = searchParams.get("id");
     const key = searchParams.get("key");
 
+    const [contentType, setContentType] = useState(2);
     const [label, setLabel] = useState("Secret Not Found");
     const [secret, setSecret] = useState("secret not found");
     const [timesAccessed, setTimesAccessed] = useState(0);
@@ -28,7 +34,7 @@ function ViewPage() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        fetch(`https://youshallnotpassbackend.azurewebsites.net/vault?id=${id}&key=${key}`)
+        fetch(`${BASE_URL}?id=${id}&key=${key}`)
             .then((response) => {
                 if (response.ok) {
                     return response.json();
@@ -42,10 +48,17 @@ function ViewPage() {
                     setLoading(false);
                 } else {
                     setLabel(data.label);
-                    setSecret(atob(data.data));
+                    setContentType(data.contentType);
+                    if (data.contentType === TEXT_CONTENT) {
+                        setSecret(atob(data.data));
+                    } else if (data.contentType === IMAGE_CONTENT) {
+                        setSecret("data:image/png;base64," + data.data);
+                    } else if (data.contentType === PDF_CONTENT) {
+                        setSecret("data:application/pdf;base64," + data.data);
+                    }
                     setTimesAccessed(data.timesAccessed);
                     setMaxAccesses(data.maxAccessCount >= 100000 ? "Unlimited" : data.maxAccessCount);
-                    setExpiration(moment(new Date(data.expirationDate)).tz(Intl.DateTimeFormat().resolvedOptions().timeZone).format("YYYY-MM-DD hh:mm A z"));
+                    setExpiration(moment.utc(data.expirationDate).tz(Intl.DateTimeFormat().resolvedOptions().timeZone).format("YYYY-MM-DD hh:mm A z"));
                     setLoading(false);
                 }
             })
@@ -57,7 +70,7 @@ function ViewPage() {
     }, [id, key]);
 
     const handleDelete = () => {
-        fetch(`https://youshallnotpassbackend.azurewebsites.net/vault?id=${id}`, { method: "DELETE" })
+        fetch(`${BASE_URL}?id=${id}`, { method: "DELETE" })
         .then(() => {
             navigate("/");
         })
@@ -117,7 +130,9 @@ function ViewPage() {
             <Card>
                 <Card.Body>
                     <Card.Text>
-                        {secret}
+                        <iframe src={secret} hidden={contentType !== 0} />
+                        <img src={secret} hidden={contentType !== 1}></img>
+                        <p hidden={contentType !== 2}>{secret}</p>
                     </Card.Text>
                 </Card.Body>
             </Card>
