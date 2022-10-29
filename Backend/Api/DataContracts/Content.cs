@@ -9,7 +9,7 @@ namespace YouShallNotPassBackend.DataContracts
         public ContentType ContentType { get; set; }
 
         [DataMember(IsRequired = true)]
-        public string? Label { get; set; }
+        public string Label { get; set; }
 
         [DataMember(IsRequired = true)]
         public DateTime ExpirationDate { get; set; }
@@ -21,6 +21,17 @@ namespace YouShallNotPassBackend.DataContracts
         public int TimesAccessed { get; set; }
 
         [DataMember(IsRequired = true)]
-        public byte[]? Data { get; set; }
+        public byte[] Data { get; set; }
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is not Content other) return false;
+
+            return ContentType == other.ContentType &&
+                Label == other.Label &&
+                ExpirationDate == other.ExpirationDate &&
+                MaxAccessCount == other.MaxAccessCount &&
+                Enumerable.SequenceEqual(Data, other.Data);
+        }
     }
 }

@@ -39,31 +39,25 @@ namespace YouShallNotPassBackend.Cryptography
         public byte[] Decrypt(byte[] encryptedData, byte[] key, byte[] iv, int dataLength)
         {
             byte[] encryptionKey = GetEncryptionKey(key);
-            byte[] data = new byte[dataLength];
 
-            using (Aes aesAlg = Aes.Create())
+            using Aes aesAlg = Aes.Create();
+
+            aesAlg.Key = encryptionKey;
+            aesAlg.IV = iv;
+
+            ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
+
+            using MemoryStream inputMemoryStream = new(encryptedData);
+            using MemoryStream outputMemoryStream = new();
+            using CryptoStream cryptoStream = new(inputMemoryStream, decryptor, CryptoStreamMode.Read);
+
+            cryptoStream.CopyTo(outputMemoryStream);
+
+            byte[] data = outputMemoryStream.ToArray();
+
+            if (data.Length != dataLength)
             {
-                aesAlg.Key = encryptionKey;
-                aesAlg.IV = iv;
-
-                ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
-
-                using MemoryStream memoryStream = new(encryptedData);
-                using CryptoStream cryptoStream = new(memoryStream, decryptor, CryptoStreamMode.Read);
-
-                int totalBytesRead = 0;
-                int bytesRead = 0;
-
-                do
-                {
-                    bytesRead = cryptoStream.Read(data, bytesRead, dataLength - bytesRead);
-                    totalBytesRead += bytesRead;
-                } while (bytesRead > 0);
-
-                if (totalBytesRead != dataLength)
-                {
-                    throw new InvalidOperationException($"bytesRead = {bytesRead} != dataLength = {dataLength}");
-                }
+                throw new InvalidOperationException($"bytesRead = {data.Length} != dataLength = {dataLength}");
             }
 
             return data;

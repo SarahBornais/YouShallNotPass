@@ -15,6 +15,7 @@ namespace YouShallNotPassBackendTests
     public class StorageManagerTests
     {
         private readonly StorageManager storageManager;
+        private static readonly Random random = new();
 
         public StorageManagerTests()
         {
@@ -33,7 +34,28 @@ namespace YouShallNotPassBackendTests
             ContentKey contentKey = storageManager.AddEntry(content);
             Content retreivedContent = storageManager.GetEntry(contentKey);
 
-            CollectionAssert.AreEquivalent(content.Data, retreivedContent.Data);
+            Assert.AreEqual(content, retreivedContent);
+        }
+
+        [TestMethod]
+        public void TestAddGetEntryWithLongerLabel()
+        {
+            Content content = GetContent("password", "Password from Slack", DateTime.Now.AddMinutes(15), 1);
+            ContentKey contentKey = storageManager.AddEntry(content);
+            Content retreivedContent = storageManager.GetEntry(contentKey);
+
+            Assert.AreEqual(content, retreivedContent);
+        }
+
+        [TestMethod]
+        public void TestAddGetEntryWithEvenLongerLabel()
+        {
+            string label = RandomString(1024);
+            Content content = GetContent("password", label, DateTime.Now.AddMinutes(15), 1);
+            ContentKey contentKey = storageManager.AddEntry(content);
+            Content retreivedContent = storageManager.GetEntry(contentKey);
+
+            Assert.AreEqual(content, retreivedContent);
         }
 
         [TestMethod]
@@ -43,7 +65,7 @@ namespace YouShallNotPassBackendTests
             ContentKey contentKey = storageManager.AddEntry(content);
             Content retreivedContent = storageManager.GetEntry(contentKey);
 
-            CollectionAssert.AreEquivalent(content.Data, retreivedContent.Data);
+            Assert.AreEqual(content, retreivedContent);
             Assert.ThrowsException<EntryExpiredException>(() => storageManager.GetEntry(contentKey));
         }
 
@@ -54,13 +76,13 @@ namespace YouShallNotPassBackendTests
             ContentKey contentKey = storageManager.AddEntry(content);
 
             Content retreivedContent = storageManager.GetEntry(contentKey);
-            CollectionAssert.AreEquivalent(content.Data, retreivedContent.Data);
+            Assert.AreEqual(content, retreivedContent);
 
             Content retreivedContent2 = storageManager.GetEntry(contentKey);
-            CollectionAssert.AreEquivalent(content.Data, retreivedContent2.Data);
+            Assert.AreEqual(content, retreivedContent2);
 
             Content retreivedContent3 = storageManager.GetEntry(contentKey);
-            CollectionAssert.AreEquivalent(content.Data, retreivedContent3.Data);
+            Assert.AreEqual(content, retreivedContent3);
 
             Assert.ThrowsException<EntryExpiredException>(() => storageManager.GetEntry(contentKey));
         }
@@ -74,7 +96,7 @@ namespace YouShallNotPassBackendTests
             for (int i = 0; i < 5; i++)
             {
                 Content retreivedContent = storageManager.GetEntry(contentKey);
-                CollectionAssert.AreEquivalent(content.Data, retreivedContent.Data);
+                Assert.AreEqual(content, retreivedContent);
             }
 
             Thread.Sleep(2000);
@@ -88,7 +110,7 @@ namespace YouShallNotPassBackendTests
             ContentKey contentKey = storageManager.AddEntry(content);
 
             Content retreivedContent = storageManager.GetEntry(contentKey);
-            CollectionAssert.AreEquivalent(content.Data, retreivedContent.Data);
+            Assert.AreEqual(content, retreivedContent);
 
             bool success = storageManager.DeleteEntry(contentKey.Id);
             Assert.IsTrue(success);
@@ -96,10 +118,9 @@ namespace YouShallNotPassBackendTests
             Assert.ThrowsException<EntryNotFoundException>(() => storageManager.GetEntry(contentKey));
         }
 
-        private static Content GetContent(DateTime expirationDate, int maxAccessCount)
+        private static Content GetContent(string data, string label, DateTime expirationDate, int maxAccessCount)
         {
-            byte[] data = Encoding.ASCII.GetBytes("passowrd");
-            string label = "my passowrd";
+            byte[] dataBytes = Encoding.ASCII.GetBytes(data);
 
             return new()
             {
@@ -107,8 +128,19 @@ namespace YouShallNotPassBackendTests
                 Label = label,
                 ExpirationDate = expirationDate,
                 MaxAccessCount = maxAccessCount,
-                Data = data
+                Data = dataBytes
             };
+        }
+
+        private static Content GetContent(DateTime expirationDate, int maxAccessCount)
+        {
+            return GetContent("password", "my password", expirationDate, maxAccessCount);
+        }
+        private static string RandomString(int length)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            return new string(Enumerable.Repeat(chars, length)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
         }
     }
 }
