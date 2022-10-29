@@ -73,6 +73,8 @@ Then, to restore the packages in the virtual environment
 
 ### `pip install -r requirements.txt`
 
+(temporary step for October 29th testing) copy the credentials.json file into the sendmail folder
+
 Run the server 
 
 ### `python app.py`
