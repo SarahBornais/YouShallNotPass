@@ -33,6 +33,7 @@ def home():
 
 # Endpoint for Slack slash command
 # Default settings: one-day expiration, one-time access
+# Supports text only
 @app.route('/youshallnotpass', methods=['POST'])
 def password_command():
   data = request.form
@@ -40,22 +41,26 @@ def password_command():
   
   # send request to our backend for a link
   data = {
-    'contentType': 2,
-    'label': "Password sent via Slack",
-    'expirationDate': ((dt.now() + timedelta(days=1)).isoformat()),
-    'maxAccessCount': 1,
-    'data': base64.b64encode(data.get('text').encode('ascii')).decode('ascii')
+    "contentType": 2,
+    "label": "Password sent via Slack",
+    "expirationDate": ((dt.utcnow() + timedelta(days=1)).isoformat()),
+    "maxAccessCount": 1,
+    "data": base64.b64encode(data.get('text').encode('ascii')).decode('ascii')
   }
-  
+  print(data)
   response = requests.post(url=SERVER_URL + VAULT_ENDPOINT, json=data)
-  response_data = json.loads(response.text)
 
-  link = FRONTEND_URL + FRONTEND_PASSWORD_VIEW + '?id=' + response_data[
-    'id'] + '&key=' + response_data['key']
+  if response.ok:
+    response_data = json.loads(response.text)
 
-  # password currently shows as coming from bot: may want to change later
-  client.chat_postMessage(channel=channel_id, text=(link))
-  return Response(), 200
+    link = FRONTEND_URL + FRONTEND_PASSWORD_VIEW + '?id=' + response_data['id'] + '&key=' + response_data['key']
+
+    # password currently shows as coming from bot: may want to change later
+    client.chat_postMessage(channel=channel_id, text=(link))
+    return Response(), 200
+    
+  else:
+    return Response(), 500
 
 
 def run():
