@@ -42,7 +42,7 @@ def protect_secrets(s):
     print(expiry_str)
 
     obj = {
-    "contentType": 0,
+    "contentType": 2,
     "label": "string",
     "expirationDate": expiry_str,
     # "2022-10-27T23:12:38.968Z"
