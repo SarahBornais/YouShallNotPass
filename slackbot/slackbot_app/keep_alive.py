@@ -38,7 +38,11 @@ def home():
 def password_command():
   data = request.form
   channel_id = data.get('channel_id')
-  
+
+  if (data.get('text') == ''):
+    return Response(
+      "Error: can't send an empty secret. Try '/youshallnotpass [your secret]'"), 200
+
   # send request to our backend for a link
   data = {
     "contentType": 2,
@@ -47,18 +51,19 @@ def password_command():
     "maxAccessCount": 1,
     "data": base64.b64encode(data.get('text').encode('ascii')).decode('ascii')
   }
-  print(data)
+
   response = requests.post(url=SERVER_URL + VAULT_ENDPOINT, json=data)
 
   if response.ok:
     response_data = json.loads(response.text)
 
-    link = FRONTEND_URL + FRONTEND_PASSWORD_VIEW + '?id=' + response_data['id'] + '&key=' + response_data['key']
+    link = FRONTEND_URL + FRONTEND_PASSWORD_VIEW + '?id=' + response_data[
+      'id'] + '&key=' + response_data['key']
 
     # password currently shows as coming from bot: may want to change later
     client.chat_postMessage(channel=channel_id, text=(link))
     return Response(), 200
-    
+
   else:
     return Response(), 500
 
