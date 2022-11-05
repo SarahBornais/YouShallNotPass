@@ -22,7 +22,7 @@ namespace YouShallNotPassBackend.Controllers
         [HttpGet]
         public ActionResult<Content> Get([FromQuery()] ContentKey contentKey)
         {
-            string path = $"[GET] {Request.Path.Value}";  
+            string path = $"[GET] {Request.Path.Value}";
 
             if (contentKey == null)
             {
