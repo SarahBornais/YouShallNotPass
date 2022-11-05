@@ -1,5 +1,4 @@
-﻿using System.Reflection.Emit;
-using System.Runtime.Serialization;
+﻿using System.Runtime.Serialization;
 using YouShallNotPassBackend.DataContracts;
 
 namespace YouShallNotPassBackend.Storage
