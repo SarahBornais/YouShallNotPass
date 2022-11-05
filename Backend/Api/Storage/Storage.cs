@@ -1,7 +1,6 @@
 ﻿using Aornis;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using YouShallNotPassBackend.Exceptions;
 
 namespace YouShallNotPassBackend.Storage
 {
@@ -50,6 +49,40 @@ namespace YouShallNotPassBackend.Storage
         public void Delete(Guid id)
         {
             File.Delete(GetFileLocation(id));
+        }
+
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        public bool Contains(Guid id)
+        {
+            return File.Exists(GetFileLocation(id));
+        }
+
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        public List<Guid> GetAllEntryGuids()
+        {
+            List<Guid> guids = new();
+
+            DirectoryInfo directoryInfo = new(storageDirectory);
+            foreach (FileInfo file in directoryInfo.GetFiles())
+            {
+                guids.Add(Guid.Parse(file.Name));
+            }
+
+            return guids;
+        }
+
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        public void Clear()
+        {
+            foreach (Guid id in GetAllEntryGuids())
+            {
+                Delete(id);
+            }
+        }
+
+        public int Count()
+        {
+            return GetAllEntryGuids().Count;
         }
 
         private string GetFileLocation(Guid id)
