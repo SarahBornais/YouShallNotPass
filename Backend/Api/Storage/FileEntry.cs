@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
+using System.Reflection.Emit;
 using System.Text;
 using System.Text.Json.Serialization;
 using YouShallNotPassBackend.Cryptography;
@@ -28,12 +29,12 @@ namespace YouShallNotPassBackend.Storage
 
         public byte[] Data { get; set; }
 
-        public static StorageEntry EncryptFileEntry(Crypto crypto, FileEntry fileEntry, byte[] key, ContentType contentType, Guid id)
+        public static StorageEntry EncryptFileEntry(Crypto crypto, FileEntry fileEntry, byte[] key, EntryMetadata entryMetadata, Guid id)
         {
             return new StorageEntry()
             {
                 Id = id,
-                ContentType = contentType,
+                EntryMetadata = entryMetadata,
                 EntryKeyHash = crypto.Hash(key),
                 EncryptedFileEntry = new FileEntry
                 {
@@ -54,6 +55,20 @@ namespace YouShallNotPassBackend.Storage
                 LabelBytes = crypto.Decrypt(storageEntry.EncryptedFileEntry.LabelBytes, key, storageEntry.LabelIV, storageEntry.LabelLength),
                 Data = crypto.Decrypt(storageEntry.EncryptedFileEntry.Data, key, storageEntry.DataIV, storageEntry.DataLength)
             };
+        }
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is not FileEntry other) return false;
+
+            return Enumerable.SequenceEqual(LabelBytes, other.LabelBytes) &&
+                Enumerable.SequenceEqual(Data, other.Data);
+        }
+
+        public override int GetHashCode()
+        {
+            return LabelBytes.GetHashCode() +
+                Data.GetHashCode();
         }
     }
 }

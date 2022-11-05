@@ -36,7 +36,7 @@ if (serverKey == null)
 
 Crypto crypto = new(serverKey);
 Storage storage = new(entriesLocation);
-StorageManager storageManager = new(storage, crypto);
+StorageManager storageManager = new(storage, crypto, 60 * 1000);
 
 builder.Services.AddSingleton<IStorageManager>(storageManager);
 

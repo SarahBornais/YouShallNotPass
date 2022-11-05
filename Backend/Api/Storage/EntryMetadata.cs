@@ -1,23 +1,49 @@
-﻿namespace YouShallNotPassBackend.Storage
+﻿using System.Runtime.Serialization;
+using YouShallNotPassBackend.DataContracts;
+
+namespace YouShallNotPassBackend.Storage
 {
+    [DataContract]
     public class EntryMetadata
     {
-        public EntryMetadata(DateTime expirationDate, int maxAccessCount)
-        {
-            ExpirationDate = expirationDate;
-            MaxAccessCount = maxAccessCount;
-            TimesAccessed = 0;
-        }
+        [DataMember(IsRequired = true)]
+        public ContentType ContentType { get; set; }
 
-        public DateTime ExpirationDate { get; }
+        [DataMember(IsRequired = true)]
+        public DateTime ExpirationDate { get; set; }
 
-        public int MaxAccessCount { get; }
+        [DataMember(IsRequired = true)]
+        public int MaxAccessCount { get; set; }
 
-        public int TimesAccessed { get; private set; }
+        [DataMember(IsRequired = true)]
+        public int TimesAccessed { get; set; } = 0;
 
         public void IncrementTimesAccessed()
         {
             TimesAccessed++;
+        }
+
+        public bool IsEntryExpired()
+        {
+            return ExpirationDate < DateTime.Now || TimesAccessed >= MaxAccessCount;
+        }
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is not EntryMetadata other) return false;
+
+            return ContentType == other.ContentType &&
+                ExpirationDate.ToUniversalTime().Equals(other.ExpirationDate.ToUniversalTime()) &&
+                MaxAccessCount == other.MaxAccessCount &&
+                TimesAccessed == other.TimesAccessed;
+        }
+
+        public override int GetHashCode()
+        {
+            return ContentType.GetHashCode() +
+                ExpirationDate.GetHashCode() +
+                MaxAccessCount.GetHashCode() +
+                TimesAccessed.GetHashCode();
         }
     }
 }

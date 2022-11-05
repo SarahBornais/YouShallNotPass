@@ -15,6 +15,7 @@ namespace YouShallNotPassBackendTests
     public class StorageManagerTests
     {
         private readonly StorageManager storageManager;
+        private readonly Storage storage;
         private static readonly Random random = new();
 
         public StorageManagerTests()
@@ -23,8 +24,14 @@ namespace YouShallNotPassBackendTests
             Directory.CreateDirectory(entriesLocation);
 
             Crypto crypto = new(Convert.ToHexString(RandomNumberGenerator.GetBytes(128 / 8)));
-            Storage storage = new(entriesLocation);
-            storageManager = new(storage, crypto);
+            storage = new(entriesLocation);
+            storageManager = new(storage, crypto, 1000);
+        }
+
+        [TestCleanup()]
+        public void Cleanup()
+        {
+            storageManager.Clear();
         }
 
         [TestMethod]
@@ -116,6 +123,20 @@ namespace YouShallNotPassBackendTests
             Assert.IsTrue(success);
             
             Assert.ThrowsException<EntryNotFoundException>(() => storageManager.GetEntry(contentKey));
+        }
+
+        [TestMethod]
+        public void TestDeleteExpired()
+        {
+            Content content = GetContent(DateTime.Now.AddSeconds(1), 100);
+            ContentKey contentKey = storageManager.AddEntry(content);
+
+            Content retreivedContent = storageManager.GetEntry(contentKey);
+            Assert.AreEqual(content, retreivedContent);
+
+            Thread.Sleep(3000);
+
+            Assert.IsFalse(storage.Contains(contentKey.Id));
         }
 
         private static Content GetContent(string data, string label, DateTime expirationDate, int maxAccessCount)

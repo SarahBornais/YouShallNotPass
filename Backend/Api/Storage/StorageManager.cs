@@ -1,22 +1,34 @@
 ﻿using Aornis;
 using System.Runtime.CompilerServices;
+using System.ComponentModel;
 using YouShallNotPassBackend.DataContracts;
 using YouShallNotPassBackend.Exceptions;
 using YouShallNotPassBackend.Cryptography;
+using Timer = System.Timers.Timer;
+using System.Data;
 
 namespace YouShallNotPassBackend.Storage
 {
     public class StorageManager : IStorageManager
     {
-        private readonly Dictionary<Guid, EntryMetadata> entryMetadata = new();
-
         private readonly Storage storage;
         private readonly Crypto crypto;
+        private readonly BackgroundWorker worker;
 
-        public StorageManager(Storage storage, Crypto crypto)
+        public StorageManager(Storage storage, Crypto crypto, int clearingInvertalMillis)
         {
             this.storage = storage;
             this.crypto = crypto;
+
+            worker = new();
+            worker.DoWork += (_, _) => RemoveExpiredEntries();
+
+            Timer timer = new(clearingInvertalMillis);
+            timer.Elapsed += (_, _) =>
+            {
+                if (!worker.IsBusy) worker.RunWorkerAsync();
+            };
+            timer.Start();
         }
 
         [MethodImpl(MethodImplOptions.Synchronized)]
@@ -24,15 +36,21 @@ namespace YouShallNotPassBackend.Storage
         {
             ContentKey contentKey = ContentKey.GenerateRandom();
 
+            EntryMetadata entryMetaData = new()
+            {
+                ContentType = content.ContentType,
+                ExpirationDate = content.ExpirationDate,
+                MaxAccessCount = content.MaxAccessCount
+            };
+
             StorageEntry storageEntry = FileEntry.EncryptFileEntry(
                 crypto,
                 new(content.Label, content.Data), 
-                contentKey.KeyBytes(), 
-                content.ContentType, 
+                contentKey.KeyBytes(),
+                entryMetaData, 
                 contentKey.Id);
 
-            storage.Write(storageEntry);
-            entryMetadata.Add(contentKey.Id, new EntryMetadata(content.ExpirationDate, content.MaxAccessCount));
+            storage.Write(storageEntry); 
 
             return contentKey;
         }
@@ -50,12 +68,13 @@ namespace YouShallNotPassBackend.Storage
             StorageEntry storageEntry = optionalStorageEntry.Value;
             FileEntry fileEntry = FileEntry.DecryptFileEntry(crypto, storageEntry, contentKey.KeyBytes());
 
-            EntryMetadata metadata = entryMetadata[contentKey.Id];
+            EntryMetadata metadata = storageEntry.EntryMetadata;
             metadata.IncrementTimesAccessed();
+            storage.Write(storageEntry);
 
             return new Content
             {
-                ContentType = storageEntry.ContentType, 
+                ContentType = storageEntry.EntryMetadata.ContentType, 
                 Label = fileEntry.Label,
                 ExpirationDate = metadata.ExpirationDate, 
                 MaxAccessCount = metadata.MaxAccessCount, 
@@ -67,36 +86,42 @@ namespace YouShallNotPassBackend.Storage
         [MethodImpl(MethodImplOptions.Synchronized)]
         public bool DeleteEntry(Guid id)
         {
-            if (!entryMetadata.ContainsKey(id))
+            if (!storage.Contains(id))
             {
                 return false;
             }
 
-            entryMetadata.Remove(id);
             storage.Delete(id);
-
             return true;
         }
 
-        private Optional<Exception> CheckEntryForAccess(ContentKey contentKey, Optional<StorageEntry> optionalStorageEntry)
+        public void Clear()
         {
-            if (entryMetadata.TryGetValue(contentKey.Id, out EntryMetadata? metadata))
+            storage.Clear();
+        }
+
+        public void RemoveExpiredEntries()
+        {
+            foreach (Guid id in storage.GetAllEntryGuids())
             {
-                if (metadata.ExpirationDate < DateTime.Now || metadata.TimesAccessed >= metadata.MaxAccessCount)
+                Optional<StorageEntry> storageEntry = storage.Read(id);
+                if (storageEntry.HasValue && storageEntry.Value.EntryMetadata.IsEntryExpired())
+                {
+                    DeleteEntry(id);
+                }
+            }
+        }
+
+        private Optional<Exception> CheckEntryForAccess(ContentKey contentKey, Optional<StorageEntry> storageEntry)
+        {
+            if (storageEntry.HasValue)
+            {
+                if (storageEntry.Value.EntryMetadata.IsEntryExpired())
                 {
                     return new EntryExpiredException();
                 }
-            }
-            else
-            {
-                return new EntryNotFoundException();
-            }
 
-            if (optionalStorageEntry.HasValue)
-            {
-                StorageEntry storageEntry = optionalStorageEntry.Value;
-
-                if (!Enumerable.SequenceEqual(crypto.Hash(contentKey.KeyBytes()), storageEntry.EntryKeyHash))
+                if (!Enumerable.SequenceEqual(crypto.Hash(contentKey.KeyBytes()), storageEntry.Value.EntryKeyHash))
                 {
                     return new InvalidKeyException();
                 }

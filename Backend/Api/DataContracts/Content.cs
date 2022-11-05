@@ -33,5 +33,16 @@ namespace YouShallNotPassBackend.DataContracts
                 MaxAccessCount == other.MaxAccessCount &&
                 Enumerable.SequenceEqual(Data, other.Data);
         }
+
+        public override int GetHashCode()
+        {
+            return ContentType.GetHashCode() +
+                Label.GetHashCode() +
+                ExpirationDate.GetHashCode() +
+                MaxAccessCount.GetHashCode() +
+                TimesAccessed.GetHashCode() +
+                Data.GetHashCode();
+        }
+
     }
 }
