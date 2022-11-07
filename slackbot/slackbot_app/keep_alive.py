@@ -44,7 +44,7 @@ def password_command():
       "Error: can't send an empty secret. Try '/youshallnotpass [your secret]'"), 200
 
   # send request to our backend for a link
-  data = {
+  secret_data = {
     "contentType": 2,
     "label": "Password sent via Slack",
     "expirationDate": ((dt.utcnow() + timedelta(days=1)).isoformat()),
@@ -52,7 +52,7 @@ def password_command():
     "data": base64.b64encode(data.get('text').encode('ascii')).decode('ascii')
   }
 
-  response = requests.post(url=SERVER_URL + VAULT_ENDPOINT, json=data)
+  response = requests.post(url=SERVER_URL + VAULT_ENDPOINT, json=secret_data)
 
   if response.ok:
     response_data = json.loads(response.text)
@@ -60,8 +60,7 @@ def password_command():
     link = FRONTEND_URL + FRONTEND_PASSWORD_VIEW + '?id=' + response_data[
       'id'] + '&key=' + response_data['key']
 
-    # password currently shows as coming from bot: may want to change later
-    client.chat_postMessage(channel=channel_id, text=(link))
+    client.chat_postMessage(channel=channel_id, text=("<@" + data.get('user_id') + "> has sent a secret to the chat: " + link))
     return Response(), 200
 
   else:
