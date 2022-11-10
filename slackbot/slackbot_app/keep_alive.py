@@ -86,6 +86,10 @@ def shortcut():
 # Endpoint for Slack slash command
 @app.route("/youshallnotpass-slashcmd", methods=["POST"])
 def password_command():
+  if not signature_verifier.is_valid_request(request.get_data(),
+                                             request.headers):
+    return Response("Invalid request"), 403
+    
   data = request.form
   channel_id = data.get("channel_id")
 
