@@ -2,6 +2,7 @@ using YouShallNotPassBackend.Storage;
 using YouShallNotPassBackend.Cryptography;
 using Microsoft.Extensions.Logging.AzureAppServices;
 using Microsoft.Net.Http.Headers;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,7 +24,13 @@ builder.Services.AddCors(options =>
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SupportNonNullableReferenceTypes();
+
+    var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
+});
 
 string entriesLocation = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "entries");
 Directory.CreateDirectory(entriesLocation);
@@ -41,6 +48,8 @@ StorageManager storageManager = new(storage, crypto, 60 * 1000);
 builder.Services.AddSingleton<IStorageManager>(storageManager);
 
 var app = builder.Build();
+
+app.MapGet("/isAlive", () => Results.Ok()).AllowAnonymous();
 
 app.UseCors();
 

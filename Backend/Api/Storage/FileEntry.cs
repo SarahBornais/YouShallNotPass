@@ -1,13 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
-using System.Reflection.Emit;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json.Serialization;
 using YouShallNotPassBackend.Cryptography;
-using YouShallNotPassBackend.DataContracts;
 
 namespace YouShallNotPassBackend.Storage
 {
-    [Serializable()]
     public class FileEntry
     {
         public FileEntry(string label, byte[] data)
@@ -25,9 +21,9 @@ namespace YouShallNotPassBackend.Storage
         [JsonIgnore]
         public string Label => Encoding.Unicode.GetString(LabelBytes);
 
-        public byte[] LabelBytes { get; set; }
+        public byte[] LabelBytes { get; init; }
 
-        public byte[] Data { get; set; }
+        public byte[] Data { get; init; }
 
         public static StorageEntry EncryptFileEntry(Crypto crypto, FileEntry fileEntry, byte[] key, EntryMetadata entryMetadata, Guid id)
         {

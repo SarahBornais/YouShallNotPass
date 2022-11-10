@@ -1,24 +1,27 @@
-﻿using System.Runtime.Serialization;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
-using System.Text.Json.Serialization;
 
 namespace YouShallNotPassBackend.DataContracts
 {
-    [DataContract]
     public class ContentKey
     {
-        [DataMember(IsRequired = true)]
-        public Guid Id { get; set; }
+        /// <summary>
+        ///  UUID-formatted string
+        /// </summary>
+        [Required]
+        public Guid Id { get; init; }
 
-        [DataMember(IsRequired = true)]
-        public string Key { get; set; }
+        /// <summary>
+        ///  Hex-fromatted string
+        /// </summary>
+        [Required]
+        public string Key { get; init; } = string.Empty;
 
         public byte[] KeyBytes() => Convert.FromHexString(Key);
 
         public static ContentKey GenerateRandom()
         {
             byte[] random = RandomNumberGenerator.GetBytes(128 / 8);
-
             return new ContentKey { Id = Guid.NewGuid(), Key = Convert.ToHexString(random) };
         }
 
