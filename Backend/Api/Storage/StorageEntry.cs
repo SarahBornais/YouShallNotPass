@@ -1,23 +1,22 @@
 ﻿namespace YouShallNotPassBackend.Storage
 {
-    [Serializable()]
     public class StorageEntry
     {
-        public Guid Id { get; set; }
+        public Guid Id { get; init; }
 
-        public EntryMetadata EntryMetadata { get; set; }
+        public EntryMetadata EntryMetadata { get; init; } = new EntryMetadata();
 
-        public byte[] EntryKeyHash { get; set; }
+        public byte[] EntryKeyHash { get; init; } = Array.Empty<byte>();
 
-        public FileEntry EncryptedFileEntry { get; set; }
+        public FileEntry EncryptedFileEntry { get; init; } = new FileEntry();
 
-        public byte[] LabelIV { get; set; }
+        public byte[] LabelIV { get; init; } = Array.Empty<byte>();
 
-        public byte[] DataIV { get; set; }
+        public byte[] DataIV { get; init; } = Array.Empty<byte>();
 
-        public int LabelLength { get; set; }
+        public int LabelLength { get; init; }
 
-        public int DataLength { get; set; }
+        public int DataLength { get; init; }
 
         public override bool Equals(object? obj)
         {

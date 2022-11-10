@@ -1,13 +1,13 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using YouShallNotPassBackend.DataContracts;
 
 namespace YouShallNotPassBackendApiTests
 {
     [TestClass]
     public class ApiTest
     {
+#nullable disable warnings // the test framwork will set TestContext
         public TestContext TestContext { get; set; }
 
         public string apiUrl;
@@ -23,6 +23,7 @@ namespace YouShallNotPassBackendApiTests
             apiUrl = (string)TestContext.Properties["apiUrl"];
             client.BaseAddress = new Uri(apiUrl);
         }
+#nullable enable warnings
 
         public async Task<TResponseBody?> GetSuccess<TResponseBody>(string path, Dictionary<string, string> queryParameters)
         {
@@ -39,7 +40,7 @@ namespace YouShallNotPassBackendApiTests
             Assert.AreEqual(response.StatusCode, expectedStatusCode);
         }
 
-        public async Task GetSuccess(string path, Dictionary<string, string> queryParameters)
+        public async Task GetSuccess(string path, Dictionary<string, string>? queryParameters)
         {
             HttpResponseMessage response = await client.GetAsync(CalculateUri(path, queryParameters));
             response.EnsureSuccessStatusCode();
@@ -62,7 +63,7 @@ namespace YouShallNotPassBackendApiTests
             response.EnsureSuccessStatusCode();
         }
 
-        private Uri CalculateUri(string path, Dictionary<string, string> queryParameters)
+        private Uri CalculateUri(string path, Dictionary<string, string>? queryParameters)
         {
             UriBuilder builder = new(apiUrl)
             {

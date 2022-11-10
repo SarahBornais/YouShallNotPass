@@ -1,21 +1,15 @@
-﻿using System.Runtime.Serialization;
-using YouShallNotPassBackend.DataContracts;
+﻿using YouShallNotPassBackend.DataContracts;
 
 namespace YouShallNotPassBackend.Storage
 {
-    [DataContract]
     public class EntryMetadata
     {
-        [DataMember(IsRequired = true)]
-        public ContentType ContentType { get; set; }
+        public ContentType ContentType { get; init; }
 
-        [DataMember(IsRequired = true)]
-        public DateTime ExpirationDate { get; set; }
+        public DateTime ExpirationDate { get; init; }
 
-        [DataMember(IsRequired = true)]
-        public int MaxAccessCount { get; set; }
+        public int MaxAccessCount { get; init; }
 
-        [DataMember(IsRequired = true)]
         public int TimesAccessed { get; set; } = 0;
 
         public void IncrementTimesAccessed()
