@@ -28,7 +28,7 @@ To run locally (message Madeline to setup the users database before proceeding),
         2. Run `dotnet run`, the url will show in the terminal
         3. The root index is a swagger UI that shows all of the APIs and how to use them (see `/Backend/ContentType.cs` for the enum definitions)
 
-To run the Api Tests (message Madeline to test authentication credentials),
+To run the Api Tests (message Madeline to setup test authentication credentials before proceeding),
 1. First, install [.Net 6](https://dotnet.microsoft.com/en-us/download)
 2. If testing a local deployment, run the server locally
 3. Two options:
