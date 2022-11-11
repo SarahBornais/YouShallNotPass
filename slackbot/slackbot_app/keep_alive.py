@@ -11,10 +11,12 @@ from datetime import datetime as dt
 from datetime import timedelta
 import base64
 import json
+import isodate
 from modal_def import *
 
 SERVER_URL = "https://youshallnotpassbackend.azurewebsites.net"
 VAULT_ENDPOINT = "vault"
+TOKEN_ENDPOINT = "security/authenticate"
 
 FRONTEND_URL = "http://youshallnotpass.org"
 FRONTEND_PASSWORD_VIEW = "view"
@@ -24,6 +26,10 @@ env_path = Path("..") / ".env"
 load_dotenv(dotenv_path=env_path)
 bot_api_token = os.environ["BOT_TOKEN"]
 signature_verifier = SignatureVerifier(os.environ["SLACK_SIGNING_SECRET"])
+slack_server_secret = os.environ["SLACK_SERVER_SECRET"]
+
+server_token = ""
+server_token_expiration = dt.utcnow().isoformat()
 
 client = slack.WebClient(token=bot_api_token)
 
@@ -89,7 +95,7 @@ def password_command():
   if not signature_verifier.is_valid_request(request.get_data(),
                                              request.headers):
     return Response("Invalid request"), 403
-    
+
   data = request.form
   channel_id = data.get("channel_id")
 
@@ -118,6 +124,10 @@ def upload_and_post_secret(secret, label, expiration_hrs, max_accesses,
   if max_accesses == None:
     max_accesses = 1
 
+  # get auth token for the server
+  if set_server_token() != None:
+    return "Authentication error"
+
   secret_data = {
     "contentType": 2,
     "label": label,
@@ -128,7 +138,8 @@ def upload_and_post_secret(secret, label, expiration_hrs, max_accesses,
   }
 
   response = requests.post(url=f"{SERVER_URL}/{VAULT_ENDPOINT}",
-                           json=secret_data)
+                           json=secret_data,
+                           headers={"Authorization": f"Bearer {server_token}"})
 
   if response.ok:
     response_data = json.loads(response.text)
@@ -143,6 +154,31 @@ def upload_and_post_secret(secret, label, expiration_hrs, max_accesses,
     return
 
   return "An error was encountered while uploading your secret: please try again"
+
+
+def set_server_token():
+  global server_token
+  global server_token_expiration
+
+  # if the current token doesn't expire in the next 10 seconds, use it
+  if (server_token_expiration >
+      (dt.utcnow() + timedelta(seconds=10)).isoformat()):
+    return
+
+  response = requests.get(url=f"{SERVER_URL}/{TOKEN_ENDPOINT}",
+                          params={
+                            "ServiceName": "slack",
+                            "SecretKey": slack_server_secret
+                          })
+
+  if response.ok:
+    response_data = json.loads(response.text)
+    server_token = response_data["token"]
+    server_token_expiration = isodate.parse_datetime(
+      response_data["expirationDate"]).isoformat()
+    return
+
+  return "error"
 
 
 def run():
