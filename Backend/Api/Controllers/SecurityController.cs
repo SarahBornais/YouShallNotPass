@@ -7,7 +7,6 @@ using YouShallNotPassBackend.Security;
 namespace YouShallNotPassBackend.Controllers
 {
     [Route("security")]
-    [EnableCors("AllowAnyOrigin")]
     public class SecurityController : Controller
     {
         private readonly ITokenAuthority tokenAuthority;
