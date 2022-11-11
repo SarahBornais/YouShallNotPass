@@ -1,12 +1,7 @@
-using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using YouShallNotPassBackend.Cryptography;
-using YouShallNotPassBackend.DataContracts;
-using YouShallNotPassBackend.Storage;
+using YouShallNotPassBackend.Security;
 
-namespace YouShallNotPassBackendTests
+namespace YouShallNotPassBackendUnitTests
 {
     [TestClass]
     public class CryptoTests

@@ -1,6 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json.Serialization;
-using YouShallNotPassBackend.Cryptography;
+using YouShallNotPassBackend.Security;
 
 namespace YouShallNotPassBackend.Storage
 {
@@ -31,7 +31,7 @@ namespace YouShallNotPassBackend.Storage
             {
                 Id = id,
                 EntryMetadata = entryMetadata,
-                EntryKeyHash = crypto.Hash(key),
+                EntryKeyHash = Crypto.Hash(key),
                 EncryptedFileEntry = new FileEntry
                 {
                     LabelBytes = crypto.Encrypt(fileEntry.LabelBytes, key, out byte[] labelIV),
