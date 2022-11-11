@@ -26,10 +26,11 @@ namespace YouShallNotPassBackend.Controllers
         [HttpGet]
         [AllowAnonymous]
         [Route("authenticate")]
-        public ActionResult GetSecurityToken([FromQuery] Service service)
+        public ActionResult<AuthenticationToken> GetSecurityToken([FromQuery] Service service)
         {
             if (authenticator.Authenticate(service))
             {
+
                 return Ok(tokenAuthority.GetToken(service.ServiceName));
             }
 

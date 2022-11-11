@@ -40,7 +40,7 @@ builder.Services.AddSwaggerGen(options =>
         {
             Description =
                 "JWT Authorization header using the Bearer scheme. \r\n\r\n " +
-                "Example: \"Bearer 12345abcdef\"",
+                "Enter token without 'Brearer ' prefix",
             Type = SecuritySchemeType.Http,
             Scheme = "bearer"
         });

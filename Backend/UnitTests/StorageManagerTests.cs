@@ -22,7 +22,7 @@ namespace YouShallNotPassBackendUnitTests
             Directory.CreateDirectory(entriesLocation);
             Directory.CreateDirectory(entriesLocationWithGC);
 
-            Crypto crypto = new(Convert.ToHexString(RandomNumberGenerator.GetBytes(128 / 8)));
+            Crypto crypto = new(RandomNumberGenerator.GetBytes(128 / 8));
 
             Storage storage = new(entriesLocation);
             Storage storageWithGc = new(entriesLocationWithGC);

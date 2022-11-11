@@ -6,7 +6,7 @@ namespace YouShallNotPassBackendUnitTests
     [TestClass]
     public class CryptoTests
     {
-        private readonly Crypto crypto = new(Convert.ToHexString(RandomNumberGenerator.GetBytes(128 / 8)));
+        private readonly Crypto crypto = new(RandomNumberGenerator.GetBytes(128 / 8));
         private readonly byte[] key = RandomNumberGenerator.GetBytes(128 / 8);
 
         [TestMethod]

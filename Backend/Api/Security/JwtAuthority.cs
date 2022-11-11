@@ -1,8 +1,7 @@
-﻿using Microsoft.AspNetCore.DataProtection.KeyManagement;
-using Microsoft.IdentityModel.Tokens;
+﻿using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
+using YouShallNotPassBackend.DataContracts;
 
 namespace YouShallNotPassBackend.Security
 {
@@ -32,22 +31,28 @@ namespace YouShallNotPassBackend.Security
             };
         }
 
-        public string GetToken(string identity)
+        public AuthenticationToken GetToken(string identity)
         {
+            DateTime expirationDate = DateTime.UtcNow.AddMinutes(5);
+
             SecurityTokenDescriptor tokenDescriptor = new()
             {
                 Subject = new ClaimsIdentity(new[]
                 {
                     new Claim(JwtRegisteredClaimNames.Sub, identity)
                 }),
-                Expires = DateTime.UtcNow.AddMinutes(5),
+                Expires = expirationDate,
                 Issuer = issuer,
                 Audience = audience,
                 SigningCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature)
             };
 
             JwtSecurityTokenHandler tokenHandler = new();
-            return tokenHandler.WriteToken(tokenHandler.CreateToken(tokenDescriptor));
+            return new()
+            {
+                Token = tokenHandler.WriteToken(tokenHandler.CreateToken(tokenDescriptor)),
+                ExpirationDate = expirationDate
+            };
         }
 
         public string? ValidateTokenAndGetIdentity(string token)

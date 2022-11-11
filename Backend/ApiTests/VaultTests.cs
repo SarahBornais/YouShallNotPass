@@ -10,6 +10,10 @@ namespace YouShallNotPassBackendApiTests
         private const string path = "vault";
         private static readonly Random random = new();
 
+        public VaultTests() : base(requireAuthentication: true)
+        {
+        }
+
         [TestMethod]
         public async Task TestPost()
         {
