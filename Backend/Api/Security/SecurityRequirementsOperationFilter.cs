@@ -1,7 +1,5 @@
-﻿using Microsoft.AspNetCore.Authentication;
-using Microsoft.OpenApi.Models;
+﻿using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
-using System.Security.AccessControl;
 using Authorize = YouShallNotPassBackend.Security.AuthorizeAttribute;
 
 public class AuthorizationOperationFilter : IOperationFilter

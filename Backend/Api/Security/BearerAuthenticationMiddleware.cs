@@ -1,19 +1,13 @@
-﻿using Microsoft.AspNetCore.DataProtection.KeyManagement;
-using Microsoft.IdentityModel.Tokens;
-using System.Globalization;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-
-namespace YouShallNotPassBackend.Security
+﻿namespace YouShallNotPassBackend.Security
 {
-    public class BearerAuthorizationMiddleware
+    public class BearerAuthenticationMiddleware
     {
         private const string schemePrefix = "Bearer ";
 
         private readonly RequestDelegate next;
         private readonly ITokenAuthority tokenAuthority;
 
-        public BearerAuthorizationMiddleware(RequestDelegate next, ITokenAuthority tokenAuthority)
+        public BearerAuthenticationMiddleware(RequestDelegate next, ITokenAuthority tokenAuthority)
         {
             this.next = next;
             this.tokenAuthority = tokenAuthority;
