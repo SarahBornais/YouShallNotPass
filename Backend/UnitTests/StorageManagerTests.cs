@@ -1,31 +1,34 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
-using YouShallNotPassBackend.Cryptography;
+using YouShallNotPassBackend.Security;
 using YouShallNotPassBackend.DataContracts;
 using YouShallNotPassBackend.Exceptions;
 using YouShallNotPassBackend.Storage;
 
-namespace YouShallNotPassBackendTests
+namespace YouShallNotPassBackendUnitTests
 {
     [TestClass]
     public class StorageManagerTests
     {
         private readonly StorageManager storageManager;
-        private readonly Storage storage;
+        private readonly StorageManager storageManagerWithGC;
         private static readonly Random random = new();
 
         public StorageManagerTests()
         {
-            string entriesLocation = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "entries");
-            Directory.CreateDirectory(entriesLocation);
+            string entriesLocation = Path.Combine(Path.GetTempPath(), "entries");
+            string entriesLocationWithGC = Path.Combine(Path.GetTempPath(), "entriesWithGC");
 
-            Crypto crypto = new(Convert.ToHexString(RandomNumberGenerator.GetBytes(128 / 8)));
-            storage = new(entriesLocation);
-            storageManager = new(storage, crypto, 1000);
+            Directory.CreateDirectory(entriesLocation);
+            Directory.CreateDirectory(entriesLocationWithGC);
+
+            Crypto crypto = new(RandomNumberGenerator.GetBytes(128 / 8));
+
+            Storage storage = new(entriesLocation);
+            Storage storageWithGc = new(entriesLocationWithGC);
+
+            storageManager = new(storage, crypto, clearingInvertalMillis: null);
+            storageManagerWithGC = new(storageWithGc, crypto, clearingInvertalMillis: 10);   
         }
 
         [TestCleanup()]
@@ -106,8 +109,9 @@ namespace YouShallNotPassBackendTests
                 Assert.AreEqual(content, retreivedContent);
             }
 
-            Thread.Sleep(2000);
+            Thread.Sleep(2001);
             Assert.ThrowsException<EntryExpiredException>(() => storageManager.GetEntry(contentKey));
+            
         }
 
         [TestMethod]
@@ -128,6 +132,8 @@ namespace YouShallNotPassBackendTests
         [TestMethod]
         public void TestDeleteExpired()
         {
+            StorageManager storageManager = storageManagerWithGC;
+
             Content content = GetContent(DateTime.Now.AddSeconds(1), 100);
             ContentKey contentKey = storageManager.AddEntry(content);
 
@@ -136,7 +142,7 @@ namespace YouShallNotPassBackendTests
 
             Thread.Sleep(3000);
 
-            Assert.IsFalse(storage.Contains(contentKey.Id));
+            Assert.ThrowsException<EntryNotFoundException>(() => storageManager.GetEntry(contentKey));
         }
 
         private static Content GetContent(string data, string label, DateTime expirationDate, int maxAccessCount)

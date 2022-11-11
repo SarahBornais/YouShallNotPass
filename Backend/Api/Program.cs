@@ -1,8 +1,13 @@
 using YouShallNotPassBackend.Storage;
-using YouShallNotPassBackend.Cryptography;
+using YouShallNotPassBackend.Security;
 using Microsoft.Extensions.Logging.AzureAppServices;
 using Microsoft.Net.Http.Headers;
 using System.Reflection;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,10 +22,7 @@ builder.Services.Configure<AzureFileLoggerOptions>(options =>
     options.RetainedFileCountLimit = 5;
 });
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAnyOrigin", builder => builder.AllowAnyOrigin().AllowAnyMethod().WithHeaders(HeaderNames.ContentType));
-});
+builder.Services.AddCors();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -30,28 +32,50 @@ builder.Services.AddSwaggerGen(options =>
 
     var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
+
+    options.OperationFilter<AuthorizationOperationFilter>();
+
+    options.AddSecurityDefinition("Bearer",
+        new OpenApiSecurityScheme
+        {
+            Description =
+                "JWT Authorization header using the Bearer scheme. \r\n\r\n " +
+                "Enter token without 'Brearer ' prefix",
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer"
+        });
 });
 
 string entriesLocation = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "entries");
 Directory.CreateDirectory(entriesLocation);
 
-string serverKey = builder.Configuration["ServerKey"];
-if (serverKey == null)
-{
-    throw new InvalidOperationException("ServerKey is not defined. For local deployments, see README for instructions.");
-}
+byte[] serverKey = Convert.FromHexString(builder.Configuration["ServerKey"] ??
+    throw new ArgumentException("ServerKey is not defined. For local deployments, see README for instructions."));
+
+string issuer = builder.Configuration["Jwt:Issuer"] ?? throw new ArgumentException("Jwt:Issuer is not defined.");
+string audience = builder.Configuration["Jwt:Audience"] ?? throw new ArgumentException("Jwt:Audience is not defined.");
 
 Crypto crypto = new(serverKey);
 Storage storage = new(entriesLocation);
 StorageManager storageManager = new(storage, crypto, 60 * 1000);
 
+string usersDbLocation = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "users.db");
+IdentityDatabase authenticator = new(usersDbLocation);
+
+JwtAuthority jwtAuthority = new(issuer, audience, serverKey);
+
 builder.Services.AddSingleton<IStorageManager>(storageManager);
+builder.Services.AddSingleton<IAuthenticator>(authenticator);
+builder.Services.AddSingleton<ITokenAuthority>(jwtAuthority);
 
 var app = builder.Build();
 
 app.MapGet("/isAlive", () => Results.Ok()).AllowAnonymous();
 
-app.UseCors();
+app.UseCors(x => x
+    .AllowAnyOrigin()
+    .AllowAnyMethod()
+    .AllowAnyHeader());
 
 app.UseSwagger();
 app.UseSwaggerUI(options =>
@@ -62,7 +86,7 @@ app.UseSwaggerUI(options =>
 
 app.UseHttpsRedirection();
 
-app.UseAuthorization();
+app.UseMiddleware<BearerAuthenticationMiddleware>();
 
 app.MapControllers();
 

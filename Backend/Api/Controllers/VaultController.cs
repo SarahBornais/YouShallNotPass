@@ -1,9 +1,9 @@
-﻿using Microsoft.AspNetCore.Cors;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using YouShallNotPassBackend.DataContracts;
 using YouShallNotPassBackend.Exceptions;
 using YouShallNotPassBackend.Storage;
+using Authorize = YouShallNotPassBackend.Security.AuthorizeAttribute;
 
 namespace YouShallNotPassBackend.Controllers
 {
@@ -11,7 +11,6 @@ namespace YouShallNotPassBackend.Controllers
     /// CRUD for secret data (data is encrypted at rest)
     /// </summary>
     [Route("vault")]
-    [EnableCors("AllowAnyOrigin")]
     public class VaultController : Controller
     {
         private readonly ILogger logger;
@@ -119,7 +118,8 @@ namespace YouShallNotPassBackend.Controllers
         ///        "key": "4772F324327F569605BB970A4496BEE5"
         ///     }
         /// </returns>
-        [HttpPost] 
+        [HttpPost]
+        [Authorize]
         public ActionResult<ContentKey> Post([FromBody] Content content)
         {
             string path = $"[POST] {Request.Path.Value}";

@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using System.ComponentModel;
 using YouShallNotPassBackend.DataContracts;
 using YouShallNotPassBackend.Exceptions;
-using YouShallNotPassBackend.Cryptography;
+using YouShallNotPassBackend.Security;
 using Timer = System.Timers.Timer;
 
 namespace YouShallNotPassBackend.Storage
@@ -12,22 +12,24 @@ namespace YouShallNotPassBackend.Storage
     {
         private readonly Storage storage;
         private readonly Crypto crypto;
-        private readonly BackgroundWorker worker;
 
-        public StorageManager(Storage storage, Crypto crypto, int clearingInvertalMillis)
+        public StorageManager(Storage storage, Crypto crypto, int? clearingInvertalMillis)
         {
             this.storage = storage;
             this.crypto = crypto;
 
-            worker = new();
-            worker.DoWork += (_, _) => RemoveExpiredEntries();
-
-            Timer timer = new(clearingInvertalMillis);
-            timer.Elapsed += (_, _) =>
+            if (clearingInvertalMillis != null)
             {
-                if (!worker.IsBusy) worker.RunWorkerAsync();
-            };
-            timer.Start();
+                BackgroundWorker worker = new();
+                worker.DoWork += (_, _) => RemoveExpiredEntries();
+
+                Timer timer = new(clearingInvertalMillis.Value);
+                timer.Elapsed += (_, _) =>
+                {
+                    if (!worker.IsBusy) worker.RunWorkerAsync();
+                };
+                timer.Start();
+            }
         }
 
         [MethodImpl(MethodImplOptions.Synchronized)]
@@ -115,7 +117,7 @@ namespace YouShallNotPassBackend.Storage
                     throw new EntryExpiredException();
                 }
 
-                if (!Enumerable.SequenceEqual(crypto.Hash(contentKey.KeyBytes()), storageEntry.Value.EntryKeyHash))
+                if (!Enumerable.SequenceEqual(Crypto.Hash(contentKey.KeyBytes()), storageEntry.Value.EntryKeyHash))
                 {
                     throw new InvalidKeyException();
                 }

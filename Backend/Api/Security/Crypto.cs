@@ -1,16 +1,15 @@
 ﻿using System.Security.Cryptography;
 
-namespace YouShallNotPassBackend.Cryptography
+namespace YouShallNotPassBackend.Security
 {
     public class Crypto
     {
-        private readonly string serverKey;
+        private readonly byte[] serverKey;
 
-        public Crypto(string serverKey)
+        public Crypto(byte[] serverKey)
         {
             this.serverKey = serverKey;
         }
-
 
         public byte[] Encrypt(byte[] data, byte[] key, out byte[] iv)
         {
@@ -63,15 +62,13 @@ namespace YouShallNotPassBackend.Cryptography
             return data;
         }
 
-        public byte[] Hash(byte[] bytes)
+        public static byte[] Hash(byte[] bytes)
         {
             return SHA256.HashData(bytes);
         }
 
         private byte[] GetEncryptionKey(byte[] contentKey)
         {
-            byte[] serverKey = Convert.FromHexString(this.serverKey);
-
             if (contentKey.Length != 128 / 8 || serverKey.Length != 128 / 8)
             {
                 throw new InvalidOperationException($"content key length = {contentKey.Length}, server key length = {serverKey.Length}");
