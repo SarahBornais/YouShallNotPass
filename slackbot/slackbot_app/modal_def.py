@@ -50,6 +50,10 @@ global_modal = {
       "type": "number_input",
       "is_decimal_allowed": False,
       "min_value": "1",
+      "placeholder": {
+            "type": "plain_text",
+            "text": "Default: 1"
+          },
     },
     "optional": True,
   }, {
@@ -64,6 +68,10 @@ global_modal = {
       "expiration-id",
       "type":
       "static_select",
+      "placeholder": {
+            "type": "plain_text",
+            "text": "Default: 24 hours"
+          },
       "options": [
         {
           "text": {
