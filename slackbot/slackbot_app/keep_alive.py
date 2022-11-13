@@ -146,11 +146,12 @@ def upload_and_post_secret(secret, label, expiration_hrs, max_accesses,
     secret_id = response_data["id"]
     secret_key = response_data["key"]
 
-    link = f"{FRONTEND_URL}/{FRONTEND_PASSWORD_VIEW}?id={secret_id}&key={secret_key}"
+    link = f"{FRONTEND_URL}/{FRONTEND_PASSWORD_VIEW}?id={secret_id}"
 
     client.chat_postMessage(
       channel=channel_id,
-      text=(f"<@{user_id}> has sent a secret to the chat: {link}"))
+      text=(
+        f"<@{user_id}> has sent a secret to the chat: {link}\nClick the link and enter the key {secret_key} to access it"))
     return
 
   return "An error was encountered while uploading your secret: please try again"
