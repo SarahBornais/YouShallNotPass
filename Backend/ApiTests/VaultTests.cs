@@ -1,9 +1,6 @@
-﻿using System;
-using System.Net;
+﻿using System.Net;
 using System.Text;
-using System.Text.Json;
 using YouShallNotPassBackend.DataContracts;
-using YouShallNotPassBackend.Exceptions;
 
 namespace YouShallNotPassBackendApiTests
 {
@@ -12,6 +9,10 @@ namespace YouShallNotPassBackendApiTests
     {
         private const string path = "vault";
         private static readonly Random random = new();
+
+        public VaultTests() : base(requireAuthentication: true)
+        {
+        }
 
         [TestMethod]
         public async Task TestPost()

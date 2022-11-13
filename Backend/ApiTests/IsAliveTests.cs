@@ -1,14 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace YouShallNotPassBackendApiTests
+﻿namespace YouShallNotPassBackendApiTests
 {
     [TestClass]
     public class IsAliveTests : ApiTest
     {
+        public IsAliveTests() : base(requireAuthentication: false)
+        {
+        }
+
         [TestMethod]
         public void ApiUrlFromRunSettings()
         {

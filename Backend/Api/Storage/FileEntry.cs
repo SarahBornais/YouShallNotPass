@@ -1,12 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json.Serialization;
-using YouShallNotPassBackend.Cryptography;
-using YouShallNotPassBackend.DataContracts;
+using YouShallNotPassBackend.Security;
 
 namespace YouShallNotPassBackend.Storage
 {
-    [Serializable()]
     public class FileEntry
     {
         public FileEntry(string label, byte[] data)
@@ -24,17 +21,17 @@ namespace YouShallNotPassBackend.Storage
         [JsonIgnore]
         public string Label => Encoding.Unicode.GetString(LabelBytes);
 
-        public byte[] LabelBytes { get; set; }
+        public byte[] LabelBytes { get; init; }
 
-        public byte[] Data { get; set; }
+        public byte[] Data { get; init; }
 
-        public static StorageEntry EncryptFileEntry(Crypto crypto, FileEntry fileEntry, byte[] key, ContentType contentType, Guid id)
+        public static StorageEntry EncryptFileEntry(Crypto crypto, FileEntry fileEntry, byte[] key, EntryMetadata entryMetadata, Guid id)
         {
             return new StorageEntry()
             {
                 Id = id,
-                ContentType = contentType,
-                EntryKeyHash = crypto.Hash(key),
+                EntryMetadata = entryMetadata,
+                EntryKeyHash = Crypto.Hash(key),
                 EncryptedFileEntry = new FileEntry
                 {
                     LabelBytes = crypto.Encrypt(fileEntry.LabelBytes, key, out byte[] labelIV),
@@ -54,6 +51,20 @@ namespace YouShallNotPassBackend.Storage
                 LabelBytes = crypto.Decrypt(storageEntry.EncryptedFileEntry.LabelBytes, key, storageEntry.LabelIV, storageEntry.LabelLength),
                 Data = crypto.Decrypt(storageEntry.EncryptedFileEntry.Data, key, storageEntry.DataIV, storageEntry.DataLength)
             };
+        }
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is not FileEntry other) return false;
+
+            return Enumerable.SequenceEqual(LabelBytes, other.LabelBytes) &&
+                Enumerable.SequenceEqual(Data, other.Data);
+        }
+
+        public override int GetHashCode()
+        {
+            return LabelBytes.GetHashCode() +
+                Data.GetHashCode();
         }
     }
 }
