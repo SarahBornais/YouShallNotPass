@@ -57,6 +57,8 @@ def protect_secrets(s):
     
     response = requests.post(url, json = obj)
     response_object = json.loads(response.text)
+    print("ANNA: response object is ")
+    print(response_object)
     id = response_object["id"]
     key = response_object["key"]
     get_secret_url = f"https://youshallnotpass.org/view?id={id}&key={key}"
@@ -175,9 +177,9 @@ def create_draft(service):
             body = new_message).execute()
 
         
-        service.users().drafts().send(
-            userId='me',
-            body = new_draft).execute()
+        # service.users().drafts().send(
+        #     userId='me',
+        #     body = new_draft).execute()
 
     except HttpError as error:
         # TODO(developer) - Handle errors from gmail API.
@@ -187,3 +189,4 @@ def create_draft(service):
 
 if __name__ == "__main__":
     app.run()
+    # app.run(ssl_context='adhoc')
