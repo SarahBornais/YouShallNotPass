@@ -10,11 +10,11 @@ namespace YouShallNotPassBackend.Storage
 
         public EncryptedData Label { get; init; } = new EncryptedData();
 
+        public EncryptedData? SecurityQuestionAnswer { get; init; } = new EncryptedData();
+
         public StorageEntry IncrementTimesAccessed()
         {
             return this with { Metadata = Metadata.IncrementTimesAccessed() };
         }
-
-        //public EncryptedData EncryptedSecurityQuestion { get; init; } = new EncryptedData();
     }
 }

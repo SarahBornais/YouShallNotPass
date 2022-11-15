@@ -51,13 +51,17 @@ namespace YouShallNotPassBackendApiTests
             }
         }
 #nullable enable warnings
-
-        public async Task<TResponseBody?> GetSuccess<TResponseBody>(string path, Dictionary<string, string> queryParameters)
+        public async Task<string> GetSuccessAsString(string path, Dictionary<string, string> queryParameters)
         {
             HttpResponseMessage response = await client.GetAsync(UriUtil.CalculateUri(apiUrl, path, queryParameters));
             response.EnsureSuccessStatusCode();
 
-            string responseJson = await response.Content.ReadAsStringAsync();
+            return await response.Content.ReadAsStringAsync();
+        }
+
+        public async Task<TResponseBody?> GetSuccessAsJson<TResponseBody>(string path, Dictionary<string, string> queryParameters)
+        {
+            string responseJson = await GetSuccessAsString(path, queryParameters);
             return JsonSerializer.Deserialize<TResponseBody>(responseJson, jsonOptions);
         }
 
@@ -92,7 +96,7 @@ namespace YouShallNotPassBackendApiTests
 
         public async Task<AuthenticationToken> GetToken()
         {
-            AuthenticationToken? authenticationToken = await GetSuccess<AuthenticationToken>("security/authenticate", new()
+            AuthenticationToken? authenticationToken = await GetSuccessAsJson<AuthenticationToken>("security/authenticate", new()
             {
                 ["ServiceName"] = "test",
                 ["SecretKey"] = secretKey

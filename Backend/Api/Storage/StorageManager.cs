@@ -5,7 +5,6 @@ using YouShallNotPassBackend.DataContracts;
 using YouShallNotPassBackend.Exceptions;
 using YouShallNotPassBackend.Security;
 using Timer = System.Timers.Timer;
-using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 
 namespace YouShallNotPassBackend.Storage
 {
@@ -36,7 +35,7 @@ namespace YouShallNotPassBackend.Storage
         [MethodImpl(MethodImplOptions.Synchronized)]
         public ContentKey AddEntry(Content content)
         {
-            ContentKey contentKey = ContentKey.GenerateRandom();
+            ContentKey contentKey = ContentKey.GenerateRandom(content.SecurityQuestionAnswer);
 
             EntryMetadata entryMetadata = new()
             {
@@ -44,14 +43,17 @@ namespace YouShallNotPassBackend.Storage
                 EntryKeyHash = Crypto.Hash(contentKey.KeyBytes()),
                 ContentType = content.ContentType,
                 ExpirationDate = content.ExpirationDate,
-                MaxAccessCount = content.MaxAccessCount
+                MaxAccessCount = content.MaxAccessCount,
+                SecurityQuestion = content.SecurityQuestion
             };
 
             StorageEntry storageEntry = new()
             {
                 Metadata = entryMetadata,
                 Data = crypto.Encrypt(content.Data, contentKey.KeyBytes()),
-                Label = crypto.EncryptString(content.Label, contentKey.KeyBytes())
+                Label = crypto.EncryptString(content.Label, contentKey.KeyBytes()),
+                SecurityQuestionAnswer = content.SecurityQuestionAnswer == null ? null :
+                    crypto.EncryptString(content.SecurityQuestionAnswer, contentKey.KeyBytes()),
             };
 
             storage.Write(storageEntry); 
@@ -62,7 +64,7 @@ namespace YouShallNotPassBackend.Storage
         [MethodImpl(MethodImplOptions.Synchronized)]
         public Content GetEntry(ContentKey contentKey)
         {
-            StorageEntry storageEntry = GetAndCheckForAccess(contentKey, storage.Read(contentKey.Id));
+            StorageEntry storageEntry = GetAndCheckForAccess(contentKey, storage.Read(contentKey.Id), contentKey.SecurityQuestionAnswer);
             storage.Write(storageEntry.IncrementTimesAccessed());
 
             return new Content
@@ -72,8 +74,19 @@ namespace YouShallNotPassBackend.Storage
                 ExpirationDate = storageEntry.Metadata.ExpirationDate, 
                 MaxAccessCount = storageEntry.Metadata.MaxAccessCount, 
                 TimesAccessed = storageEntry.Metadata.TimesAccessed, 
-                Data = crypto.Decrypt(storageEntry.Data, contentKey.KeyBytes())
+                Data = crypto.Decrypt(storageEntry.Data, contentKey.KeyBytes()),
             };
+        }
+
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        public string? GetSecurityQuestion(Guid id)
+        {
+            Optional<StorageEntry> storageEntry = storage.Read(id);
+
+            if (!storageEntry.HasValue) throw new EntryNotFoundException();
+            if (storageEntry.Value.Metadata.IsEntryExpired()) throw new EntryExpiredException();
+
+            return storageEntry.Value.Metadata.SecurityQuestion;
         }
 
         [MethodImpl(MethodImplOptions.Synchronized)]
@@ -105,7 +118,7 @@ namespace YouShallNotPassBackend.Storage
             }
         }
 
-        private StorageEntry GetAndCheckForAccess(ContentKey contentKey, Optional<StorageEntry> storageEntry)
+        private StorageEntry GetAndCheckForAccess(ContentKey contentKey, Optional<StorageEntry> storageEntry, string? securityQuestionAnswer)
         {
             if (storageEntry.HasValue)
             {
@@ -117,6 +130,12 @@ namespace YouShallNotPassBackend.Storage
                 if (!Enumerable.SequenceEqual(Crypto.Hash(contentKey.KeyBytes()), storageEntry.Value.Metadata.EntryKeyHash.Bytes))
                 {
                     throw new InvalidKeyException();
+                }
+
+                if (storageEntry.Value.SecurityQuestionAnswer != null &&
+                    securityQuestionAnswer != crypto.DecryptToString(storageEntry.Value.SecurityQuestionAnswer, contentKey.KeyBytes()))
+                {
+                    throw new InvalidSecurityQuestionAnswerException();
                 }
             }
             else

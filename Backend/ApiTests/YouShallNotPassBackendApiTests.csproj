@@ -20,6 +20,7 @@
 	
   <ItemGroup>
     <ProjectReference Include="..\Api\YouShallNotPassBackend.csproj" />
+    <ProjectReference Include="..\UnitTests\YouShallNotPassBackendUnitTests.csproj" />
   </ItemGroup>
 
 </Project>

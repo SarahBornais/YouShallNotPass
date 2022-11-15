@@ -16,6 +16,8 @@ namespace YouShallNotPassBackend.Storage
 
         public int TimesAccessed { get; init; } = 0;
 
+        public string? SecurityQuestion { get; init; }
+
         public EntryMetadata IncrementTimesAccessed()
         {
             return this with { TimesAccessed = TimesAccessed + 1 };

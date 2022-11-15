@@ -28,6 +28,10 @@ namespace YouShallNotPassBackend.DataContracts
         [Required]
         public byte[] Data { get; init; } = Array.Empty<byte>();
 
+        public string? SecurityQuestion { get; init; }
+
+        public string? SecurityQuestionAnswer { get; init; } 
+
         public override bool Equals(object? obj)
         {
             if (obj is not Content other) return false;
@@ -41,11 +45,10 @@ namespace YouShallNotPassBackend.DataContracts
 
         public override int GetHashCode()
         {
-            return ContentType.GetHashCode() +
-                Label.GetHashCode() +
-                ExpirationDate.GetHashCode() +
-                MaxAccessCount.GetHashCode() +
-                TimesAccessed.GetHashCode() +
+            return ContentType.GetHashCode() ^
+                Label.GetHashCode() ^
+                ExpirationDate.GetHashCode() ^
+                MaxAccessCount.GetHashCode() ^
                 Data.GetHashCode();
         }
 

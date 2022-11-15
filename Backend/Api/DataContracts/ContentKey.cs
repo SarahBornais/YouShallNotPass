@@ -17,21 +17,34 @@ namespace YouShallNotPassBackend.DataContracts
         [Required]
         public string Key { get; init; } = string.Empty;
 
+        public string? SecurityQuestionAnswer { get; init; }
+
         public byte[] KeyBytes() => Convert.FromHexString(Key);
 
-        public static ContentKey GenerateRandom()
+        public static ContentKey GenerateRandom(string? securityQuestionAnswer)
         {
-            byte[] random = RandomNumberGenerator.GetBytes(128 / 8);
-            return new ContentKey { Id = Guid.NewGuid(), Key = Convert.ToHexString(random) };
+            return new ContentKey 
+            { 
+                Id = Guid.NewGuid(), 
+                Key = Convert.ToHexString(RandomNumberGenerator.GetBytes(128 / 8)),
+                SecurityQuestionAnswer = securityQuestionAnswer
+            };
         }
 
         public Dictionary<string, string> ToQueryParameters()
         {
-            return new Dictionary<string, string>()
+            Dictionary<string, string> parameters = new()
             {
-                { "Id", Id.ToString() },
-                { "Key", Key }
+                ["Id"] = Id.ToString(),
+                ["Key"] = Key
             };
+
+            if (SecurityQuestionAnswer != null)
+            {
+                parameters.Add("SecurityQuestionAnswer", SecurityQuestionAnswer);
+            }
+
+            return parameters;
         }
     }
 }
