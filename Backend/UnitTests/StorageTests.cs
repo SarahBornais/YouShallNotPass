@@ -29,7 +29,7 @@ namespace YouShallNotPassBackendUnitTests
             StorageEntry storageEntry = GetStorageEntry();
 
             storage.Write(storageEntry);
-            Optional<StorageEntry> retreivedStorageEntry = storage.Read(storageEntry.Id);
+            Optional<StorageEntry> retreivedStorageEntry = storage.Read(storageEntry.Metadata.Id);
             Assert.IsTrue(retreivedStorageEntry.HasValue);
             Assert.AreEqual(storageEntry, retreivedStorageEntry.Value);
         }
@@ -40,7 +40,7 @@ namespace YouShallNotPassBackendUnitTests
             StorageEntry storageEntry = GetStorageEntry();
 
             storage.Write(storageEntry);
-            Assert.IsTrue(storage.Contains(storageEntry.Id));
+            Assert.IsTrue(storage.Contains(storageEntry.Metadata.Id));
         }
 
         [TestMethod]
@@ -71,7 +71,7 @@ namespace YouShallNotPassBackendUnitTests
             {
                 StorageEntry storageEntry = GetStorageEntry();
                 storage.Write(storageEntry);
-                entryGuids.Add(storageEntry.Id);
+                entryGuids.Add(storageEntry.Metadata.Id);
             }
 
             CollectionAssert.AreEquivalent(entryGuids, storage.GetAllEntryGuids());
@@ -88,23 +88,26 @@ namespace YouShallNotPassBackendUnitTests
         {
             return new()
             {
-                Id = Guid.NewGuid(),
-                EntryMetadata = new()
+                Metadata = new()
                 {
+                    Id = Guid.NewGuid(),
+                    EntryKeyHash = RandomNumberGenerator.GetBytes(256 / 8),
                     ContentType = ContentType.TEXT,
                     ExpirationDate = DateTime.UtcNow.AddMinutes(5),
                     MaxAccessCount = 100
                 },
-                EntryKeyHash = RandomNumberGenerator.GetBytes(256 / 8),
-                EncryptedFileEntry = new()
+                Data = new()
                 {
-                    LabelBytes = RandomNumberGenerator.GetBytes(12),
-                    Data = RandomNumberGenerator.GetBytes(24)
+                    Data = RandomNumberGenerator.GetBytes(24),
+                    IV = RandomNumberGenerator.GetBytes(12),
+                    Length = 10
                 },
-                LabelIV = RandomNumberGenerator.GetBytes(128 / 8),
-                DataIV = RandomNumberGenerator.GetBytes(128 / 8),
-                LabelLength = 10,
-                DataLength = 20,
+                Label = new()
+                {
+                    Data = RandomNumberGenerator.GetBytes(24),
+                    IV = RandomNumberGenerator.GetBytes(12),
+                    Length = 10
+                }
             };
         }
     }

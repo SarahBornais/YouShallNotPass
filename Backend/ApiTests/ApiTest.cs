@@ -5,6 +5,8 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Net.Http.Headers;
 
+using UriUtil = YouShallNotPassBackend.Security.AuthenticationMiddleware;
+
 namespace YouShallNotPassBackendApiTests
 {
     [TestClass]
@@ -52,7 +54,7 @@ namespace YouShallNotPassBackendApiTests
 
         public async Task<TResponseBody?> GetSuccess<TResponseBody>(string path, Dictionary<string, string> queryParameters)
         {
-            HttpResponseMessage response = await client.GetAsync(CalculateUri(path, queryParameters));
+            HttpResponseMessage response = await client.GetAsync(UriUtil.CalculateUri(apiUrl, path, queryParameters));
             response.EnsureSuccessStatusCode();
 
             string responseJson = await response.Content.ReadAsStringAsync();
@@ -61,13 +63,13 @@ namespace YouShallNotPassBackendApiTests
 
         public async Task GetFailure(string path, Dictionary<string, string> queryParameters, HttpStatusCode expectedStatusCode)
         {
-            HttpResponseMessage response = await client.GetAsync(CalculateUri(path, queryParameters));
+            HttpResponseMessage response = await client.GetAsync(UriUtil.CalculateUri(apiUrl, path, queryParameters));
             Assert.AreEqual(response.StatusCode, expectedStatusCode);
         }
 
         public async Task GetSuccess(string path, Dictionary<string, string>? queryParameters)
         {
-            HttpResponseMessage response = await client.GetAsync(CalculateUri(path, queryParameters));
+            HttpResponseMessage response = await client.GetAsync(UriUtil.CalculateUri(apiUrl, path, queryParameters));
             response.EnsureSuccessStatusCode();
 
             return;
@@ -84,7 +86,7 @@ namespace YouShallNotPassBackendApiTests
 
         public async Task DeleteSuccess(string path, Dictionary<string, string> queryParameters)
         {
-            HttpResponseMessage response = await client.DeleteAsync(CalculateUri(path, queryParameters));
+            HttpResponseMessage response = await client.DeleteAsync(UriUtil.CalculateUri(apiUrl, path, queryParameters));
             response.EnsureSuccessStatusCode();
         }
 
@@ -111,33 +113,6 @@ namespace YouShallNotPassBackendApiTests
                 token = await GetToken();
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.Token);
             }
-        }
-
-        private Uri CalculateUri(string path, Dictionary<string, string>? queryParameters)
-        {
-            UriBuilder builder = new(apiUrl)
-            {
-                Path = path
-            };
-
-            if (queryParameters == null)
-            {
-                return builder.Uri;
-            }
-
-            foreach (KeyValuePair<string, string> parameter in queryParameters)
-            {
-                if (builder.Query != null && builder.Query.Length > 1)
-                {
-                    builder.Query = builder.Query + "&" + $"{parameter.Key}={parameter.Value}";
-                }
-                else
-                {
-                    builder.Query = $"{parameter.Key}={parameter.Value}";
-                }
-            }
-
-            return builder.Uri;
         }
     }
 }

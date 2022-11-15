@@ -16,7 +16,7 @@ namespace YouShallNotPassBackend.Storage
         [MethodImpl(MethodImplOptions.Synchronized)]
         public void Write(StorageEntry storageEntry)
         {
-            string fileLocation = GetFileLocation(storageEntry.Id);
+            string fileLocation = GetFileLocation(storageEntry.Metadata.Id);
 
             Stream stream = File.Open(fileLocation, FileMode.Create);
             JsonSerializer.Serialize(stream, storageEntry);

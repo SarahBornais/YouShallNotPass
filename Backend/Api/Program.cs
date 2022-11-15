@@ -86,7 +86,7 @@ app.UseSwaggerUI(options =>
 
 app.UseHttpsRedirection();
 
-app.UseMiddleware<BearerAuthenticationMiddleware>();
+app.UseMiddleware<AuthenticationMiddleware>();
 
 app.MapControllers();
 

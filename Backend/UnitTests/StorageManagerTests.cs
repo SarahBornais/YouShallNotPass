@@ -16,8 +16,8 @@ namespace YouShallNotPassBackendUnitTests
 
         public StorageManagerTests()
         {
-            string entriesLocation = Path.Combine(Path.GetTempPath(), "entries");
-            string entriesLocationWithGC = Path.Combine(Path.GetTempPath(), "entriesWithGC");
+            string entriesLocation = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "entries");
+            string entriesLocationWithGC = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "entriesWithGC");
 
             Directory.CreateDirectory(entriesLocation);
             Directory.CreateDirectory(entriesLocationWithGC);
@@ -25,10 +25,10 @@ namespace YouShallNotPassBackendUnitTests
             Crypto crypto = new(RandomNumberGenerator.GetBytes(128 / 8));
 
             Storage storage = new(entriesLocation);
-            Storage storageWithGc = new(entriesLocationWithGC);
+            Storage storageWithGC = new(entriesLocationWithGC);
 
             storageManager = new(storage, crypto, clearingInvertalMillis: null);
-            storageManagerWithGC = new(storageWithGc, crypto, clearingInvertalMillis: 10);   
+            storageManagerWithGC = new(storageWithGC, crypto, clearingInvertalMillis: 1);   
         }
 
         [TestCleanup()]

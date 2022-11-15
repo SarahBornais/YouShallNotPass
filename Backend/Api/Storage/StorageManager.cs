@@ -5,6 +5,7 @@ using YouShallNotPassBackend.DataContracts;
 using YouShallNotPassBackend.Exceptions;
 using YouShallNotPassBackend.Security;
 using Timer = System.Timers.Timer;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 
 namespace YouShallNotPassBackend.Storage
 {
@@ -37,19 +38,21 @@ namespace YouShallNotPassBackend.Storage
         {
             ContentKey contentKey = ContentKey.GenerateRandom();
 
-            EntryMetadata entryMetaData = new()
+            EntryMetadata entryMetadata = new()
             {
+                Id = contentKey.Id,
+                EntryKeyHash = Crypto.Hash(contentKey.KeyBytes()),
                 ContentType = content.ContentType,
                 ExpirationDate = content.ExpirationDate,
                 MaxAccessCount = content.MaxAccessCount
             };
 
-            StorageEntry storageEntry = FileEntry.EncryptFileEntry(
-                crypto,
-                new(content.Label, content.Data), 
-                contentKey.KeyBytes(),
-                entryMetaData, 
-                contentKey.Id);
+            StorageEntry storageEntry = new()
+            {
+                Metadata = entryMetadata,
+                Data = crypto.Encrypt(content.Data, contentKey.KeyBytes()),
+                Label = crypto.EncryptString(content.Label, contentKey.KeyBytes())
+            };
 
             storage.Write(storageEntry); 
 
@@ -59,23 +62,17 @@ namespace YouShallNotPassBackend.Storage
         [MethodImpl(MethodImplOptions.Synchronized)]
         public Content GetEntry(ContentKey contentKey)
         {
-            Optional<StorageEntry> optionalStorageEntry = storage.Read(contentKey.Id);
-            AssertCanAccess(contentKey, optionalStorageEntry);
-
-            StorageEntry storageEntry = optionalStorageEntry.Value;
-            storageEntry.EntryMetadata.IncrementTimesAccessed();
-            storage.Write(storageEntry);
-
-            FileEntry fileEntry = FileEntry.DecryptFileEntry(crypto, storageEntry, contentKey.KeyBytes());
+            StorageEntry storageEntry = GetAndCheckForAccess(contentKey, storage.Read(contentKey.Id));
+            storage.Write(storageEntry.IncrementTimesAccessed());
 
             return new Content
             {
-                ContentType = storageEntry.EntryMetadata.ContentType, 
-                Label = fileEntry.Label,
-                ExpirationDate = storageEntry.EntryMetadata.ExpirationDate, 
-                MaxAccessCount = storageEntry.EntryMetadata.MaxAccessCount, 
-                TimesAccessed = storageEntry.EntryMetadata.TimesAccessed, 
-                Data = fileEntry.Data
+                ContentType = storageEntry.Metadata.ContentType, 
+                Label = crypto.DecryptToString(storageEntry.Label, contentKey.KeyBytes()),
+                ExpirationDate = storageEntry.Metadata.ExpirationDate, 
+                MaxAccessCount = storageEntry.Metadata.MaxAccessCount, 
+                TimesAccessed = storageEntry.Metadata.TimesAccessed, 
+                Data = crypto.Decrypt(storageEntry.Data, contentKey.KeyBytes())
             };
         }
 
@@ -101,23 +98,23 @@ namespace YouShallNotPassBackend.Storage
             foreach (Guid id in storage.GetAllEntryGuids())
             {
                 Optional<StorageEntry> storageEntry = storage.Read(id);
-                if (storageEntry.HasValue && storageEntry.Value.EntryMetadata.IsEntryExpired())
+                if (storageEntry.HasValue && storageEntry.Value.Metadata.IsEntryExpired())
                 {
                     DeleteEntry(id);
                 }
             }
         }
 
-        private void AssertCanAccess(ContentKey contentKey, Optional<StorageEntry> storageEntry)
+        private StorageEntry GetAndCheckForAccess(ContentKey contentKey, Optional<StorageEntry> storageEntry)
         {
             if (storageEntry.HasValue)
             {
-                if (storageEntry.Value.EntryMetadata.IsEntryExpired())
+                if (storageEntry.Value.Metadata.IsEntryExpired())
                 {
                     throw new EntryExpiredException();
                 }
 
-                if (!Enumerable.SequenceEqual(Crypto.Hash(contentKey.KeyBytes()), storageEntry.Value.EntryKeyHash))
+                if (!Enumerable.SequenceEqual(Crypto.Hash(contentKey.KeyBytes()), storageEntry.Value.Metadata.EntryKeyHash.Bytes))
                 {
                     throw new InvalidKeyException();
                 }
@@ -126,6 +123,8 @@ namespace YouShallNotPassBackend.Storage
             {
                 throw new EntryNotFoundException();
             }
+
+            return storageEntry.Value;
         }
     }
 }
