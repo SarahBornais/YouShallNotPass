@@ -1,6 +1,9 @@
 ﻿using System.Net;
 using System.Text;
 using YouShallNotPassBackend.DataContracts;
+using YouShallNotPassBackend.Exceptions;
+using YouShallNotPassBackend.Storage;
+using YouShallNotPassBackendUnitTests;
 
 namespace YouShallNotPassBackendApiTests
 {
@@ -8,7 +11,6 @@ namespace YouShallNotPassBackendApiTests
     public class VaultTests : ApiTest
     {
         private const string path = "vault";
-        private static readonly Random random = new();
 
         public VaultTests() : base(requireAuthentication: true)
         {
@@ -17,7 +19,7 @@ namespace YouShallNotPassBackendApiTests
         [TestMethod]
         public async Task TestPost()
         {
-            Content content = GetContent(DateTime.Now.AddMinutes(15), 1);
+            Content content = StorageManagerTests.GetContent();
             ContentKey? contentKey = await PostSuccess<Content, ContentKey>(path, content);
 
             ValidateContentKey(contentKey);
@@ -26,39 +28,12 @@ namespace YouShallNotPassBackendApiTests
         [TestMethod]
         public async Task TestPostGet()
         {
-            Content content = GetContent(DateTime.Now.AddMinutes(15), 1);
+            Content content = StorageManagerTests.GetContent();
 
             ContentKey? contentKey = await PostSuccess<Content, ContentKey>(path, content);
             ValidateContentKey(contentKey);
 
-            Content? retreivedContent = await GetSuccess<Content>(path, contentKey!.ToQueryParameters());
-            ValidateContent(retreivedContent);
-            Assert.AreEqual(content, retreivedContent);
-        }
-
-        [TestMethod]
-        public async Task TestPostGetWithLongerLabel()
-        {
-            Content content = GetContent("password", "Password from Slack", DateTime.Now.AddMinutes(15), 1);
-
-            ContentKey? contentKey = await PostSuccess<Content, ContentKey>(path, content);
-            ValidateContentKey(contentKey);
-
-            Content? retreivedContent = await GetSuccess<Content>(path, contentKey!.ToQueryParameters());
-            ValidateContent(retreivedContent);
-            Assert.AreEqual(content, retreivedContent);
-        }
-
-        [TestMethod]
-        public async Task TestPostGetWithEvenLongerLabel()
-        {
-            string label = RandomString(1024);
-            Content content = GetContent("password", label, DateTime.Now.AddMinutes(15), 1);
-
-            ContentKey? contentKey = await PostSuccess<Content, ContentKey>(path, content);
-            ValidateContentKey(contentKey);
-
-            Content? retreivedContent = await GetSuccess<Content>(path, contentKey!.ToQueryParameters());
+            Content? retreivedContent = await GetSuccessAsJson<Content>(path, contentKey!.ToQueryParameters());
             ValidateContent(retreivedContent);
             Assert.AreEqual(content, retreivedContent);
         }
@@ -66,12 +41,12 @@ namespace YouShallNotPassBackendApiTests
         [TestMethod]
         public async Task TestMaxAccessCountOf1()
         {
-            Content content = GetContent(DateTime.Now.AddMinutes(15), 1);
+            Content content = StorageManagerTests.GetContent(maxAccessCount: 1);
 
             ContentKey? contentKey = await PostSuccess<Content, ContentKey>(path, content);
             ValidateContentKey(contentKey);
 
-            Content? retreivedContent = await GetSuccess<Content>(path, contentKey!.ToQueryParameters());
+            Content? retreivedContent = await GetSuccessAsJson<Content>(path, contentKey!.ToQueryParameters());
             ValidateContent(retreivedContent);
             Assert.AreEqual(content, retreivedContent);
 
@@ -81,14 +56,14 @@ namespace YouShallNotPassBackendApiTests
         [TestMethod]
         public async Task TestMaxAccessCountOf3()
         {
-            Content content = GetContent(DateTime.Now.AddMinutes(15), 3);
+            Content content = StorageManagerTests.GetContent(maxAccessCount: 3);
 
             ContentKey? contentKey = await PostSuccess<Content, ContentKey>(path, content);
             ValidateContentKey(contentKey);
 
             for (int i = 0; i < 3; i++)
             {
-                Content? retreivedContent = await GetSuccess<Content>(path, contentKey!.ToQueryParameters());
+                Content? retreivedContent = await GetSuccessAsJson<Content>(path, contentKey!.ToQueryParameters());
                 ValidateContent(retreivedContent);
                 Assert.AreEqual(content, retreivedContent);
             }
@@ -99,17 +74,14 @@ namespace YouShallNotPassBackendApiTests
         [TestMethod]
         public async Task TestExpirationDate()
         {
-            Content content = GetContent(DateTime.Now.AddSeconds(5), 10);
+            Content content = StorageManagerTests.GetContent(expirationDate: DateTime.Now.AddSeconds(5));
 
             ContentKey? contentKey = await PostSuccess<Content, ContentKey>(path, content);
             ValidateContentKey(contentKey);
-
-            for (int i = 0; i < 5; i++)
-            {
-                Content? retreivedContent = await GetSuccess<Content>(path, contentKey!.ToQueryParameters());
-                ValidateContent(retreivedContent);
-                Assert.AreEqual(content, retreivedContent);
-            }
+            
+            Content? retreivedContent = await GetSuccessAsJson<Content>(path, contentKey!.ToQueryParameters());
+            ValidateContent(retreivedContent);
+            Assert.AreEqual(content, retreivedContent);
 
             Thread.Sleep(5000);
             await GetFailure(path, contentKey!.ToQueryParameters(), HttpStatusCode.NotFound);
@@ -118,12 +90,12 @@ namespace YouShallNotPassBackendApiTests
         [TestMethod]
         public async Task TestPostGetDelete()
         {
-            Content content = GetContent(DateTime.Now.AddMinutes(15), 1);
+            Content content = StorageManagerTests.GetContent();
 
             ContentKey? contentKey = await PostSuccess<Content, ContentKey>(path, content);
             ValidateContentKey(contentKey);
 
-            Content? retreivedContent = await GetSuccess<Content>(path, contentKey!.ToQueryParameters());
+            Content? retreivedContent = await GetSuccessAsJson<Content>(path, contentKey!.ToQueryParameters());
             ValidateContent(retreivedContent);
             Assert.AreEqual(content, retreivedContent);
 
@@ -131,23 +103,45 @@ namespace YouShallNotPassBackendApiTests
             await GetFailure(path, contentKey!.ToQueryParameters(), HttpStatusCode.NotFound);
         }
 
-        private static Content GetContent(string data, string label, DateTime expirationDate, int maxAccessCount)
+        [TestMethod]
+        public async Task TestSecurityQuestion()
         {
-            byte[] dataBytes = Encoding.ASCII.GetBytes(data);
+            Content content = StorageManagerTests.GetContent(securityQuestionAnswer: "red");
+            ContentKey? contentKey = await PostSuccess<Content, ContentKey>(path, content);
+            ValidateContentKey(contentKey);
 
-            return new()
-            {
-                ContentType = ContentType.TEXT,
-                Label = label,
-                ExpirationDate = expirationDate,
-                MaxAccessCount = maxAccessCount,
-                Data = dataBytes
-            };
+            await GetFailure(path,
+                new ContentKey()
+                {
+                    Id = contentKey!.Id,
+                    Key = contentKey.Key,
+                    SecurityQuestionAnswer = "green"
+                }.ToQueryParameters(),
+                HttpStatusCode.Unauthorized);
         }
 
-        private static Content GetContent(DateTime expirationDate, int maxAccessCount)
+        [TestMethod]
+        public async Task TestGetSecurityQuestion()
         {
-            return GetContent("password", "my password", expirationDate, maxAccessCount);
+            string question = "fav food?";
+            string answer = "pizza";
+            Content content = StorageManagerTests.GetContent(securityQuestion: question, securityQuestionAnswer: answer);
+
+            ContentKey? contentKey = await PostSuccess<Content, ContentKey>(path, content);
+            ValidateContentKey(contentKey);
+            Assert.AreEqual(answer, contentKey!.SecurityQuestionAnswer);
+
+            string? retreivedQuestion = await GetSuccessAsString(path + "/securityQuestion", new()
+            {
+                ["Id"] = contentKey!.Id.ToString()
+            });
+
+            Assert.IsNotNull(retreivedQuestion);
+            Assert.AreEqual(question, retreivedQuestion);
+
+            Content? retreivedContent = await GetSuccessAsJson<Content>(path, contentKey!.ToQueryParameters());
+            ValidateContent(retreivedContent);
+            Assert.AreEqual(content, retreivedContent);
         }
 
         private void ValidateContentKey(ContentKey? contentKey)
@@ -162,13 +156,6 @@ namespace YouShallNotPassBackendApiTests
             Assert.IsNotNull(content.Label);
             Assert.IsNotNull(content.ExpirationDate);
             Assert.IsNotNull(content.Data);
-        }
-
-        private static string RandomString(int length)
-        {
-            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            return new string(Enumerable.Repeat(chars, length)
-                .Select(s => s[random.Next(s.Length)]).ToArray());
         }
     }
 }

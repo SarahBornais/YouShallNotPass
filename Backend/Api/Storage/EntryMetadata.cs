@@ -2,42 +2,30 @@
 
 namespace YouShallNotPassBackend.Storage
 {
-    public class EntryMetadata
+    public record EntryMetadata
     {
+        public Guid Id { get; init; }
+
+        public ByteString EntryKeyHash { get; init; } = Array.Empty<byte>();
+
         public ContentType ContentType { get; init; }
 
         public DateTime ExpirationDate { get; init; }
 
         public int MaxAccessCount { get; init; }
 
-        public int TimesAccessed { get; set; } = 0;
+        public int TimesAccessed { get; init; } = 0;
 
-        public void IncrementTimesAccessed()
+        public string? SecurityQuestion { get; init; }
+
+        public EntryMetadata IncrementTimesAccessed()
         {
-            TimesAccessed++;
+            return this with { TimesAccessed = TimesAccessed + 1 };
         }
 
         public bool IsEntryExpired()
         {
             return ExpirationDate < DateTime.Now || TimesAccessed >= MaxAccessCount;
-        }
-
-        public override bool Equals(object? obj)
-        {
-            if (obj is not EntryMetadata other) return false;
-
-            return ContentType == other.ContentType &&
-                ExpirationDate.ToUniversalTime().Equals(other.ExpirationDate.ToUniversalTime()) &&
-                MaxAccessCount == other.MaxAccessCount &&
-                TimesAccessed == other.TimesAccessed;
-        }
-
-        public override int GetHashCode()
-        {
-            return ContentType.GetHashCode() +
-                ExpirationDate.GetHashCode() +
-                MaxAccessCount.GetHashCode() +
-                TimesAccessed.GetHashCode();
         }
     }
 }

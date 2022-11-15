@@ -4,10 +4,12 @@ namespace YouShallNotPassBackend.Storage
 {
     public interface IStorageManager
     {
-        public ContentKey AddEntry(Content content);
+        ContentKey AddEntry(Content content);
 
-        public Content GetEntry(ContentKey contentKey);
+        Content GetEntry(ContentKey contentKey);
 
-        public bool DeleteEntry(Guid id);
+        bool DeleteEntry(Guid id);
+
+        string? GetSecurityQuestion(Guid id);
     }
 }

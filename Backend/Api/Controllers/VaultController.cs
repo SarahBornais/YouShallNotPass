@@ -82,9 +82,49 @@ namespace YouShallNotPassBackend.Controllers
                 logger.LogInformation("{path}: Unsuccsesfully processed request with id {id}, error {error}", path, contentKey.Id, error);
                 return error;
             }
+            catch (Exception e) when (e is InvalidSecurityQuestionAnswerException)
+            {
+                ActionResult error = Unauthorized();
+                logger.LogInformation("{path}: Unsuccsesfully processed request with id {id}, error {error}", path, contentKey.Id, error);
+                return error;
+            }
             catch (Exception e)
             {
                 logger.LogError(e, "{path}: id {id}", path, contentKey.Id);
+                return Problem();
+            }
+        }
+
+        /// <summary>
+        ///     Get the security question that is required to get data with id
+        /// </summary>
+        /// <param name="id"> UUID-formatted string </param>
+        /// <remarks>
+        /// Sample request
+        /// 
+        ///     GET /vault/securityQuestion?Id=8114b83b-cd09-4ebe-a962-936a206f4feb
+        ///     
+        /// </remarks>
+        [HttpGet]
+        [Route("securityQuestion")]
+        public ActionResult<string?> GetSecurityQuestion([FromQuery] [Required] Guid id)
+        {
+            string path = $"[GET] {Request.Path.Value}";
+
+            try
+            {
+                logger.LogInformation("{path}: Received request with id {id}", path, id);
+                return storageManager.GetSecurityQuestion(id);
+            }
+            catch (Exception e) when (e is EntryExpiredException || e is EntryNotFoundException)
+            {
+                ActionResult error = NotFound();
+                logger.LogInformation("{path}: Unsuccsesfully processed request with id {id}, error {error}", path, id, error);
+                return error;
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "{path}: id {id}", path, id);
                 return Problem();
             }
         }

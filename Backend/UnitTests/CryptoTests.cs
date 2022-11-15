@@ -56,8 +56,8 @@ namespace YouShallNotPassBackendUnitTests
 
         private byte[] EncryptDecrypt(byte[] data)
         {
-            byte[] encrypted = crypto.Encrypt(data, key, out byte[] iv);
-            return crypto.Decrypt(encrypted, key, iv, data.Length);
+            EncryptedData encrypted = crypto.Encrypt(data, key);
+            return crypto.Decrypt(encrypted, key);
         }
     }
 }
