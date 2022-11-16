@@ -1,11 +1,7 @@
-import os.path
 import base64
 from email.message import EmailMessage
-import re
 import base64
-import requests
 import json
-import datetime
 import flask
 
 from datetime import timedelta
@@ -14,6 +10,8 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from urllib.parse import urlparse 
+from urllib.parse import parse_qs
 
 app = flask.Flask(__name__)
 app.secret_key = 'TODO: authenticate'
@@ -25,66 +23,13 @@ API_SERVICE_NAME = "gmail"
 API_VERSION = "v1"
 CLIENT_SECRETS_FILE = "credentials.json"
 
-def apply_shallnotpass(s):
-    print(s)
-    secret_start = s.find("/shallnotpass")
-    secret_end = s.find("/endshallnotpass") 
-    if (secret_start!=-1 and secret_end!=-1):
-        protected_secret = protect_secrets(s[secret_start + 13:secret_end])
-        return s[:secret_start] + protected_secret + apply_shallnotpass(s[secret_end + 16:])
-    else:
-        return ""
-
-def protect_secrets(s):
-    s.strip()
-
-    message_bytes = s.encode('ascii')
-    base64_bytes = base64.b64encode(message_bytes)  
-    base64_message = base64_bytes.decode('ascii')
-    expiry_date = datetime.datetime.now() + timedelta(days=1) #defaults to one day expiry
-    expiry_str = expiry_date.isoformat()
-    print(expiry_str)
-
-    obj = {
-    "contentType": 2,
-    "label": "string",
-    "expirationDate": expiry_str,
-    # "2022-10-27T23:12:38.968Z"
-    "maxAccessCount": 3,
-    "timesAccessed": 0,
-    "data": base64_message
-    }
-    
-    response = requests.post(url, json = obj)
-    response_object = json.loads(response.text)
-    print("ANNA: response object is ")
-    print(response_object)
-    id = response_object["id"]
-    key = response_object["key"]
-    get_secret_url = f"https://youshallnotpass.org/view?id={id}&key={key}"
-    print(get_secret_url)
-
-    return get_secret_url
-
-def create_message(original_draft):
+def create_message(secret_url, secret_key):
     message = EmailMessage()
-
-    data = ""
-
-    for p in original_draft["message"]["payload"]["parts"]:
-        if p["mimeType"] in ["text/plain"]:
-            data += base64.urlsafe_b64decode(p["body"]["data"]).decode("utf-8")
    
-    shallnotpass_data = apply_shallnotpass(data)
+    shallnotpass_data = f"The sender has sent you encrypted sensitive data. Click on the link: https://youshallnotpass.org/view?id={secret_url} and input the key: {secret_key} to access the secret."
 
     message.set_content(shallnotpass_data)
 
-    for metadata in original_draft["message"]["payload"]["headers"]:
-        if (metadata["name"] == "To"):
-            message['To'] = metadata["value"]
-        if (metadata["name"] == "Subject"):
-            message['Subject'] = metadata["value"]
-    
     message['From'] = 'me'
     
     encoded_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
@@ -108,7 +53,8 @@ def homepage():
     client = build(
         API_SERVICE_NAME, API_VERSION, credentials=credentials)
 
-    create_draft(client)
+    print(flask.request.url)
+    create_draft(client, flask.request.url)
     return flask.render_template('index.html')
     
 @app.route('/authorize')
@@ -153,34 +99,20 @@ def oauth2callback():
     }
     return flask.redirect('/')
 
-def create_draft(service):  
+def create_draft(service, url):  
     try:
         # Call the Gmail API
-        results = service.users().drafts().list(userId='me').execute()
-        drafts = results.get('drafts', [])
+        parsed_url = urlparse(url)
+        id = parse_qs(parsed_url.query)['id'][0]
+        key = parse_qs(parsed_url.query)['key'][0]
 
-        if not drafts:
-            print('No drafts found.')
-            return
-        print('drafts:')
-
-        # drafts[0] is the most recently created draft.
-        draft = drafts[0]
-        original_draft = service.users().drafts().get(userId='me', id=draft["id"], format="full").execute()
-
-        new_message = create_message(original_draft)
+        new_message = create_message(id, key)
         print(new_message)
         
-        new_draft = service.users().drafts().update(
+        new_draft = service.users().drafts().create(
             userId='me', 
-            id = original_draft["id"],
             body = new_message).execute()
-
-        
-        # service.users().drafts().send(
-        #     userId='me',
-        #     body = new_draft).execute()
-
+            
     except HttpError as error:
         # TODO(developer) - Handle errors from gmail API.
         print(f'An error occurred: {error}')
@@ -188,5 +120,5 @@ def create_draft(service):
     return flask.render_template('index.html')
 
 if __name__ == "__main__":
-    app.run()
-    # app.run(ssl_context='adhoc')
+    # app.run()
+    app.run(ssl_context='adhoc')
