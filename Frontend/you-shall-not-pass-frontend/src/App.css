@@ -136,3 +136,27 @@ body {
 #expiryDateInput {
     margin-bottom: 10px;
 }
+
+.card-text {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.card-text > p {
+    align-self: flex-start;
+}
+
+.card-text > img {
+    max-width: 100%;
+}
+
+.card-text > iframe {
+    width: 100%;
+    height: 90vh;
+}
+
+.form-check {
+    margin-top: 10px;
+}

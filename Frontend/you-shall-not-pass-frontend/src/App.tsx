@@ -7,6 +7,7 @@ import {
 import UploadPage from './pages/UploadPage';
 import ViewPage from './pages/ViewPage';
 import { Container, Navbar } from 'react-bootstrap';
+import ExtensionPage from "./pages/ExtensionPage";
 
 function App() {
     return (
@@ -30,6 +31,7 @@ function App() {
                     <Routes>
                         <Route path="/" element={<UploadPage />} />
                         <Route path="/view" element={<ViewPage />} />
+                        <Route path="/extension" element={<ExtensionPage />} />
                     </Routes>
                 </Router>
             </Container>

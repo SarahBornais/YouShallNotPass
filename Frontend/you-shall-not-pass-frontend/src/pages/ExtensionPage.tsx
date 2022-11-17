@@ -1,11 +1,10 @@
 import { useState } from "react";
-import {Alert, Button, Col, DropdownButton, Form, Modal, Row, Toast, ToastContainer} from "react-bootstrap";
-import Dropdown from 'react-bootstrap/Dropdown';
+import { Alert, Button, Col, Form, Modal, Row, Toast, ToastContainer } from "react-bootstrap";
 import moment from 'moment';
 import * as Icon from 'react-bootstrap-icons';
 import ReCAPTCHA from "react-google-recaptcha";
 
-function UploadPage() {
+function ExtensionPage() {
     const PDF_CONTENT = 0;
     const IMAGE_CONTENT = 1;
     const TEXT_CONTENT = 2;
@@ -86,8 +85,8 @@ function UploadPage() {
             }
             setSecretData({
                 ...secretData,
-                "expirationDate": expiration.format("yyyy-MM-DD"),
-                "expirationTime": expiration.format("HH:mm")
+                ["expirationDate"]: expiration.format("yyyy-MM-DD"),
+                ["expirationTime"]: expiration.format("HH:mm")
             });
         }
     }
@@ -99,8 +98,8 @@ function UploadPage() {
             const fileType = (reader.result as string).split(":")[1].split(";")[0];
             setSecretData({
                 ...secretData,
-                "fileData": (reader.result as string).split("base64,")[1],
-                "contentType": fileType.includes("image") ?
+                ["fileData"]: (reader.result as string).split("base64,")[1],
+                ["contentType"]: fileType.includes("image") ?
                     IMAGE_CONTENT : fileType.includes("pdf") ? PDF_CONTENT : TEXT_CONTENT
             });
         };
@@ -109,7 +108,7 @@ function UploadPage() {
 
     const toggleSecretManualEntry = () => {
         setSecretManualEntry(!secretManualEntry);
-        setSecretData({...secretData, "contentType": TEXT_CONTENT});
+        setSecretData({...secretData, ["contentType"]: TEXT_CONTENT});
     }
 
     const handleSubmit = (event: any) => {
@@ -169,8 +168,8 @@ function UploadPage() {
     };
 
     const copyLink = () => {
-        navigator.clipboard.writeText(`URL to view secret: https://youshallnotpass.org/view?id=${id}\n\nSecret key: ${key}`)
-            .then(r => document.getElementById("copy-success")?.removeAttribute("hidden"));
+        navigator.clipboard.writeText(`URL to view secret: https://youshallnotpass.org/view?id=${id}\n\nSecret key: ${key}`);
+        document.getElementById("copy-success")?.removeAttribute("hidden");
     }
 
     return (
@@ -243,11 +242,6 @@ function UploadPage() {
 
                 <Form.Group className="mb-3" controlId="secretInput">
                     <Form.Label>Secret</Form.Label>
-                    <DropdownButton id="dropdown-basic-button" title="Input Type">
-                        <Dropdown.Item href="#/action-1">File Upload</Dropdown.Item>
-                        <Dropdown.Item href="#/action-2">Raw Text</Dropdown.Item>
-                    </DropdownButton>
-                    <br />
                     <Form.Control required
                                   type="file"
                                   accept=".png,.pdf"
@@ -333,4 +327,4 @@ function UploadPage() {
     )
 }
 
-export default UploadPage;
+export default ExtensionPage;
