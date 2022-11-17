@@ -14,14 +14,15 @@ from urllib.parse import urlparse
 from urllib.parse import parse_qs
 
 app = flask.Flask(__name__)
-app.secret_key = 'TODO: authenticate'
+app.secret_key = "TODO: authenticate"
 
 # If modifying these scopes, delete the file token.json.
-SCOPES = ['https://mail.google.com/']
-url = 'https://youshallnotpassbackend.azurewebsites.net/vault'
+SCOPES = ["https://mail.google.com/"]
+url = "https://youshallnotpassbackend.azurewebsites.net/vault"
 API_SERVICE_NAME = "gmail"
 API_VERSION = "v1"
 CLIENT_SECRETS_FILE = "credentials.json"
+GMAIL_DRAFTS_URL = "https://mail.google.com/mail/u/0/#drafts"
 
 def create_message(secret_url, secret_key):
     message = EmailMessage()
@@ -55,7 +56,8 @@ def homepage():
 
     print(flask.request.url)
     create_draft(client, flask.request.url)
-    return flask.render_template('index.html')
+    # return flask.render_template('index.html')    
+    return flask.redirect(GMAIL_DRAFTS_URL)
     
 @app.route('/authorize')
 def authorize():
@@ -117,8 +119,9 @@ def create_draft(service, url):
         # TODO(developer) - Handle errors from gmail API.
         print(f'An error occurred: {error}')
     
-    return flask.render_template('index.html')
+    # return flask.render_template('index.html')    
+    return flask.redirect(GMAIL_DRAFTS_URL)
 
 if __name__ == "__main__":
-    # app.run()
-    app.run(ssl_context='adhoc')
+    app.run()
+    # app.run(ssl_context='adhoc')
