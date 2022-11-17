@@ -1,13 +1,16 @@
-﻿using Microsoft.AspNetCore.Cors;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 using YouShallNotPassBackend.DataContracts;
 using YouShallNotPassBackend.Exceptions;
 using YouShallNotPassBackend.Storage;
+using Authorize = YouShallNotPassBackend.Security.AuthorizeAttribute;
 
 namespace YouShallNotPassBackend.Controllers
 {
+    /// <summary>
+    /// CRUD for secret data (data is encrypted at rest)
+    /// </summary>
     [Route("vault")]
-    [EnableCors("AllowAnyOrigin")]
     public class VaultController : Controller
     {
         private readonly ILogger logger;
@@ -19,6 +22,27 @@ namespace YouShallNotPassBackend.Controllers
             this.storageManager = storageManager;
         }
 
+        /// <summary>
+        /// Retrieve secret data
+        /// </summary>
+        /// <remarks>
+        /// Sample request
+        /// 
+        ///     GET /vault?Id=8114b83b-cd09-4ebe-a962-936a206f4feb&amp;Key=B3F545E58849C0C78DFA0094F02E48CE
+        ///     
+        /// </remarks>
+        /// <returns>
+        /// 
+        ///     {
+        ///        "contentType": 2,
+        ///        "label": "my super secret password",
+        ///        "expirationDate": "2022-11-10T15:28:24.858242",
+        ///        "maxAccessCount": 5,
+        ///        "timesAccessed": 2,
+        ///        "data": "cGFzc3dvcmQ="
+        ///     }
+        ///     
+        /// </returns>
         [HttpGet]
         public ActionResult<Content> Get([FromQuery()] ContentKey contentKey)
         {
@@ -58,6 +82,12 @@ namespace YouShallNotPassBackend.Controllers
                 logger.LogInformation("{path}: Unsuccsesfully processed request with id {id}, error {error}", path, contentKey.Id, error);
                 return error;
             }
+            catch (Exception e) when (e is InvalidSecurityQuestionAnswerException)
+            {
+                ActionResult error = Unauthorized();
+                logger.LogInformation("{path}: Unsuccsesfully processed request with id {id}, error {error}", path, contentKey.Id, error);
+                return error;
+            }
             catch (Exception e)
             {
                 logger.LogError(e, "{path}: id {id}", path, contentKey.Id);
@@ -65,7 +95,71 @@ namespace YouShallNotPassBackend.Controllers
             }
         }
 
-        [HttpPost] 
+        /// <summary>
+        ///     Get the security question that is required to get data with id
+        /// </summary>
+        /// <param name="id"> UUID-formatted string </param>
+        /// <remarks>
+        /// Sample request
+        /// 
+        ///     GET /vault/securityQuestion?Id=8114b83b-cd09-4ebe-a962-936a206f4feb
+        ///     
+        /// </remarks>
+        [HttpGet]
+        [Route("securityQuestion")]
+        public ActionResult<string?> GetSecurityQuestion([FromQuery] [Required] Guid id)
+        {
+            string path = $"[GET] {Request.Path.Value}";
+
+            try
+            {
+                logger.LogInformation("{path}: Received request with id {id}", path, id);
+                return storageManager.GetSecurityQuestion(id);
+            }
+            catch (Exception e) when (e is EntryExpiredException || e is EntryNotFoundException)
+            {
+                ActionResult error = NotFound();
+                logger.LogInformation("{path}: Unsuccsesfully processed request with id {id}, error {error}", path, id, error);
+                return error;
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "{path}: id {id}", path, id);
+                return Problem();
+            }
+        }
+
+        /// <summary>
+        /// Upload secret data to be encryped at rest
+        /// </summary>
+        /// <remarks>
+        /// Sample request
+        ///     
+        ///     POST /vault
+        ///     {
+        ///        "contentType": 2,  
+        ///        "label": "my super secret password",
+        ///        "expirationDate": "2022-11-10T15:28:24.858242",
+        ///        "maxAccessCount": 5,
+        ///        "data": "cGFzc3dvcmQ="
+        ///     }
+        ///     
+        /// To generate an expiration date one week from now in python
+        ///     
+        ///     from datetime import datetime, timedelta
+        ///     (datetime.now() + timedelta(days=1)).isoformat()
+        ///
+        /// </remarks>
+        /// <returns>
+        ///     The key required to retrieve the secret data:
+        ///     
+        ///     {
+        ///        "id": "8fa2c316-6380-4f57-b80d-48a9545e9b0f",
+        ///        "key": "4772F324327F569605BB970A4496BEE5"
+        ///     }
+        /// </returns>
+        [HttpPost]
+        [Authorize]
         public ActionResult<ContentKey> Post([FromBody] Content content)
         {
             string path = $"[POST] {Request.Path.Value}";
@@ -105,8 +199,18 @@ namespace YouShallNotPassBackend.Controllers
             }
         }
 
+        /// <summary>
+        ///     Delete secret data
+        /// </summary>
+        /// <param name="id"> UUID-formatted string </param>
+        /// <remarks>
+        /// Sample request
+        /// 
+        ///     DELETE /vault?Id=8114b83b-cd09-4ebe-a962-936a206f4feb
+        ///     
+        /// </remarks>
         [HttpDelete]
-        public IActionResult Delete([FromQuery(Name = "id")] Guid id)
+        public IActionResult Delete([FromQuery] [Required] Guid id)
         {
             string path = $"[DELETE] {Request.Path.Value}";
 

@@ -1,17 +1,12 @@
-using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using YouShallNotPassBackend.Cryptography;
-using YouShallNotPassBackend.DataContracts;
-using YouShallNotPassBackend.Storage;
+using YouShallNotPassBackend.Security;
 
-namespace YouShallNotPassBackendTests
+namespace YouShallNotPassBackendUnitTests
 {
     [TestClass]
     public class CryptoTests
     {
-        private readonly Crypto crypto = new(Convert.ToHexString(RandomNumberGenerator.GetBytes(128 / 8)));
+        private readonly Crypto crypto = new(RandomNumberGenerator.GetBytes(128 / 8));
         private readonly byte[] key = RandomNumberGenerator.GetBytes(128 / 8);
 
         [TestMethod]
@@ -61,8 +56,8 @@ namespace YouShallNotPassBackendTests
 
         private byte[] EncryptDecrypt(byte[] data)
         {
-            byte[] encrypted = crypto.Encrypt(data, key, out byte[] iv);
-            return crypto.Decrypt(encrypted, key, iv, data.Length);
+            EncryptedData encrypted = crypto.Encrypt(data, key);
+            return crypto.Decrypt(encrypted, key);
         }
     }
 }

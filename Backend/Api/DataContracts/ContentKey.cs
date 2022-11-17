@@ -1,34 +1,50 @@
-﻿using System.Runtime.Serialization;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
-using System.Text.Json.Serialization;
 
 namespace YouShallNotPassBackend.DataContracts
 {
-    [DataContract]
     public class ContentKey
     {
-        [DataMember(IsRequired = true)]
-        public Guid Id { get; set; }
+        /// <summary>
+        ///  UUID-formatted string
+        /// </summary>
+        [Required]
+        public Guid Id { get; init; }
 
-        [DataMember(IsRequired = true)]
-        public string Key { get; set; }
+        /// <summary>
+        ///  Hex-fromatted string
+        /// </summary>
+        [Required]
+        public string Key { get; init; } = string.Empty;
+
+        public string? SecurityQuestionAnswer { get; init; }
 
         public byte[] KeyBytes() => Convert.FromHexString(Key);
 
-        public static ContentKey GenerateRandom()
+        public static ContentKey GenerateRandom(string? securityQuestionAnswer)
         {
-            byte[] random = RandomNumberGenerator.GetBytes(128 / 8);
-
-            return new ContentKey { Id = Guid.NewGuid(), Key = Convert.ToHexString(random) };
+            return new ContentKey 
+            { 
+                Id = Guid.NewGuid(), 
+                Key = Convert.ToHexString(RandomNumberGenerator.GetBytes(128 / 8)),
+                SecurityQuestionAnswer = securityQuestionAnswer
+            };
         }
 
         public Dictionary<string, string> ToQueryParameters()
         {
-            return new Dictionary<string, string>()
+            Dictionary<string, string> parameters = new()
             {
-                { "Id", Id.ToString() },
-                { "Key", Key }
+                ["Id"] = Id.ToString(),
+                ["Key"] = Key
             };
+
+            if (SecurityQuestionAnswer != null)
+            {
+                parameters.Add("SecurityQuestionAnswer", SecurityQuestionAnswer);
+            }
+
+            return parameters;
         }
     }
 }

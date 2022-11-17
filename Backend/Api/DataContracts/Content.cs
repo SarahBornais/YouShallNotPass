@@ -1,26 +1,56 @@
-﻿using System.Runtime.Serialization;
+﻿using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 
 namespace YouShallNotPassBackend.DataContracts
 {
-    [DataContract]
     public class Content
     {
-        [DataMember(IsRequired = true)]
-        public ContentType ContentType { get; set; }
+        [Required]
+        public ContentType ContentType { get; init; }
 
-        [DataMember(IsRequired = true)]
-        public string? Label { get; set; }
+        [Required]
+        public string Label { get; init; } = string.Empty;
 
-        [DataMember(IsRequired = true)]
-        public DateTime ExpirationDate { get; set; }
+        [Required]
+        public DateTime ExpirationDate { get; init; }
 
-        [DataMember(IsRequired = true)]
-        public int MaxAccessCount { get; set; }
+        [Required]
+        public int MaxAccessCount { get; init; }
 
-        [DataMember(IsRequired = false)]
-        public int TimesAccessed { get; set; }
+        [DefaultValue(0)]
+        public int TimesAccessed { get; init; } = 0;
 
-        [DataMember(IsRequired = true)]
-        public byte[]? Data { get; set; }
+        /// <summary>
+        /// For json, use a base64-encoded string
+        /// 
+        /// For example, if the data is "password", use "cGFzc3dvcmQ="
+        /// </summary>
+        [Required]
+        public byte[] Data { get; init; } = Array.Empty<byte>();
+
+        public string? SecurityQuestion { get; init; }
+
+        public string? SecurityQuestionAnswer { get; init; } 
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is not Content other) return false;
+
+            return ContentType == other.ContentType &&
+                Label == other.Label &&
+                ExpirationDate == other.ExpirationDate &&
+                MaxAccessCount == other.MaxAccessCount &&
+                Enumerable.SequenceEqual(Data, other.Data);
+        }
+
+        public override int GetHashCode()
+        {
+            return ContentType.GetHashCode() ^
+                Label.GetHashCode() ^
+                ExpirationDate.GetHashCode() ^
+                MaxAccessCount.GetHashCode() ^
+                Data.GetHashCode();
+        }
+
     }
 }

@@ -1,25 +1,20 @@
-﻿using YouShallNotPassBackend.Cryptography;
-using YouShallNotPassBackend.DataContracts;
+﻿using YouShallNotPassBackend.Security;
 
 namespace YouShallNotPassBackend.Storage
 {
-    [Serializable()]
-    public class StorageEntry
+    public record StorageEntry()
     {
-        public Guid Id { get; set; }
+        public EntryMetadata Metadata { get; init; } = new EntryMetadata();
 
-        public ContentType ContentType { get; set; }
+        public EncryptedData Data { get; init; } = new EncryptedData();
 
-        public byte[] EntryKeyHash { get; set; }
+        public EncryptedData Label { get; init; } = new EncryptedData();
 
-        public FileEntry EncryptedFileEntry { get; set; }
+        public EncryptedData? SecurityQuestionAnswer { get; init; } = new EncryptedData();
 
-        public byte[] LabelIV { get; set; }
-
-        public byte[] DataIV { get; set; }
-
-        public int LabelLength { get; set; }
-
-        public int DataLength { get; set; }
+        public StorageEntry IncrementTimesAccessed()
+        {
+            return this with { Metadata = Metadata.IncrementTimesAccessed() };
+        }
     }
 }

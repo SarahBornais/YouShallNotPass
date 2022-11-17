@@ -1,8 +1,9 @@
 ﻿using System.Net;
 using System.Text;
-using System.Text.Json;
 using YouShallNotPassBackend.DataContracts;
 using YouShallNotPassBackend.Exceptions;
+using YouShallNotPassBackend.Storage;
+using YouShallNotPassBackendUnitTests;
 
 namespace YouShallNotPassBackendApiTests
 {
@@ -11,10 +12,14 @@ namespace YouShallNotPassBackendApiTests
     {
         private const string path = "vault";
 
+        public VaultTests() : base(requireAuthentication: true)
+        {
+        }
+
         [TestMethod]
         public async Task TestPost()
         {
-            Content content = GetContent(DateTime.Now.AddMinutes(15), 1);
+            Content content = StorageManagerTests.GetContent();
             ContentKey? contentKey = await PostSuccess<Content, ContentKey>(path, content);
 
             ValidateContentKey(contentKey);
@@ -23,27 +28,27 @@ namespace YouShallNotPassBackendApiTests
         [TestMethod]
         public async Task TestPostGet()
         {
-            Content content = GetContent(DateTime.Now.AddMinutes(15), 1);
+            Content content = StorageManagerTests.GetContent();
 
             ContentKey? contentKey = await PostSuccess<Content, ContentKey>(path, content);
             ValidateContentKey(contentKey);
 
-            Content? retreivedContent = await GetSuccess<Content>(path, contentKey!.ToQueryParameters());
+            Content? retreivedContent = await GetSuccessAsJson<Content>(path, contentKey!.ToQueryParameters());
             ValidateContent(retreivedContent);
-            CollectionAssert.AreEquivalent(content.Data, retreivedContent!.Data);
+            Assert.AreEqual(content, retreivedContent);
         }
 
         [TestMethod]
         public async Task TestMaxAccessCountOf1()
         {
-            Content content = GetContent(DateTime.Now.AddMinutes(15), 1);
+            Content content = StorageManagerTests.GetContent(maxAccessCount: 1);
 
             ContentKey? contentKey = await PostSuccess<Content, ContentKey>(path, content);
             ValidateContentKey(contentKey);
 
-            Content? retreivedContent = await GetSuccess<Content>(path, contentKey!.ToQueryParameters());
+            Content? retreivedContent = await GetSuccessAsJson<Content>(path, contentKey!.ToQueryParameters());
             ValidateContent(retreivedContent);
-            CollectionAssert.AreEquivalent(content.Data, retreivedContent!.Data);
+            Assert.AreEqual(content, retreivedContent);
 
             await GetFailure(path, contentKey!.ToQueryParameters(), HttpStatusCode.NotFound);
         }
@@ -51,16 +56,16 @@ namespace YouShallNotPassBackendApiTests
         [TestMethod]
         public async Task TestMaxAccessCountOf3()
         {
-            Content content = GetContent(DateTime.Now.AddMinutes(15), 3);
+            Content content = StorageManagerTests.GetContent(maxAccessCount: 3);
 
             ContentKey? contentKey = await PostSuccess<Content, ContentKey>(path, content);
             ValidateContentKey(contentKey);
 
             for (int i = 0; i < 3; i++)
             {
-                Content? retreivedContent = await GetSuccess<Content>(path, contentKey!.ToQueryParameters());
+                Content? retreivedContent = await GetSuccessAsJson<Content>(path, contentKey!.ToQueryParameters());
                 ValidateContent(retreivedContent);
-                CollectionAssert.AreEquivalent(content.Data, retreivedContent!.Data);
+                Assert.AreEqual(content, retreivedContent);
             }
 
             await GetFailure(path, contentKey!.ToQueryParameters(), HttpStatusCode.NotFound);
@@ -69,17 +74,14 @@ namespace YouShallNotPassBackendApiTests
         [TestMethod]
         public async Task TestExpirationDate()
         {
-            Content content = GetContent(DateTime.Now.AddSeconds(5), 10);
+            Content content = StorageManagerTests.GetContent(expirationDate: DateTime.Now.AddSeconds(5));
 
             ContentKey? contentKey = await PostSuccess<Content, ContentKey>(path, content);
             ValidateContentKey(contentKey);
-
-            for (int i = 0; i < 5; i++)
-            {
-                Content? retreivedContent = await GetSuccess<Content>(path, contentKey!.ToQueryParameters());
-                ValidateContent(retreivedContent);
-                CollectionAssert.AreEquivalent(content.Data, retreivedContent!.Data);
-            }
+            
+            Content? retreivedContent = await GetSuccessAsJson<Content>(path, contentKey!.ToQueryParameters());
+            ValidateContent(retreivedContent);
+            Assert.AreEqual(content, retreivedContent);
 
             Thread.Sleep(5000);
             await GetFailure(path, contentKey!.ToQueryParameters(), HttpStatusCode.NotFound);
@@ -88,32 +90,58 @@ namespace YouShallNotPassBackendApiTests
         [TestMethod]
         public async Task TestPostGetDelete()
         {
-            Content content = GetContent(DateTime.Now.AddMinutes(15), 1);
+            Content content = StorageManagerTests.GetContent();
 
             ContentKey? contentKey = await PostSuccess<Content, ContentKey>(path, content);
             ValidateContentKey(contentKey);
 
-            Content? retreivedContent = await GetSuccess<Content>(path, contentKey!.ToQueryParameters());
+            Content? retreivedContent = await GetSuccessAsJson<Content>(path, contentKey!.ToQueryParameters());
             ValidateContent(retreivedContent);
-            CollectionAssert.AreEquivalent(content.Data, retreivedContent!.Data);
+            Assert.AreEqual(content, retreivedContent);
 
             await DeleteSuccess(path, contentKey!.ToQueryParameters());
             await GetFailure(path, contentKey!.ToQueryParameters(), HttpStatusCode.NotFound);
         }
 
-        private static Content GetContent(DateTime expirationDate, int maxAccessCount)
+        [TestMethod]
+        public async Task TestSecurityQuestion()
         {
-            byte[] data = Encoding.ASCII.GetBytes("passowrd");
-            string label = "my passowrd";
+            Content content = StorageManagerTests.GetContent(securityQuestionAnswer: "red");
+            ContentKey? contentKey = await PostSuccess<Content, ContentKey>(path, content);
+            ValidateContentKey(contentKey);
 
-            return new()
+            await GetFailure(path,
+                new ContentKey()
+                {
+                    Id = contentKey!.Id,
+                    Key = contentKey.Key,
+                    SecurityQuestionAnswer = "green"
+                }.ToQueryParameters(),
+                HttpStatusCode.Unauthorized);
+        }
+
+        [TestMethod]
+        public async Task TestGetSecurityQuestion()
+        {
+            string question = "fav food?";
+            string answer = "pizza";
+            Content content = StorageManagerTests.GetContent(securityQuestion: question, securityQuestionAnswer: answer);
+
+            ContentKey? contentKey = await PostSuccess<Content, ContentKey>(path, content);
+            ValidateContentKey(contentKey);
+            Assert.AreEqual(answer, contentKey!.SecurityQuestionAnswer);
+
+            string? retreivedQuestion = await GetSuccessAsString(path + "/securityQuestion", new()
             {
-                ContentType = ContentType.TEXT,
-                Label = label,
-                ExpirationDate = expirationDate,
-                MaxAccessCount = maxAccessCount,
-                Data = data
-            };
+                ["Id"] = contentKey!.Id.ToString()
+            });
+
+            Assert.IsNotNull(retreivedQuestion);
+            Assert.AreEqual(question, retreivedQuestion);
+
+            Content? retreivedContent = await GetSuccessAsJson<Content>(path, contentKey!.ToQueryParameters());
+            ValidateContent(retreivedContent);
+            Assert.AreEqual(content, retreivedContent);
         }
 
         private void ValidateContentKey(ContentKey? contentKey)

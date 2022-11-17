@@ -6,6 +6,7 @@ import base64
 import requests
 import json
 import datetime
+import flask
 
 from datetime import timedelta
 from google.auth.transport.requests import Request
@@ -14,9 +15,15 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+app = flask.Flask(__name__)
+app.secret_key = 'TODO: authenticate'
+
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://mail.google.com/']
 url = 'https://youshallnotpassbackend.azurewebsites.net/vault'
+API_SERVICE_NAME = "gmail"
+API_VERSION = "v1"
+CLIENT_SECRETS_FILE = "credentials.json"
 
 def apply_shallnotpass(s):
     print(s)
@@ -52,7 +59,7 @@ def protect_secrets(s):
     response_object = json.loads(response.text)
     id = response_object["id"]
     key = response_object["key"]
-    get_secret_url = f"https://youshallnotpassbackend.azurewebsites.net/vault?id={id}&key={key}"
+    get_secret_url = f"https://youshallnotpass.org/view?id={id}&key={key}"
     print(get_secret_url)
 
     return get_secret_url
@@ -65,8 +72,7 @@ def create_message(original_draft):
     for p in original_draft["message"]["payload"]["parts"]:
         if p["mimeType"] in ["text/plain"]:
             data += base64.urlsafe_b64decode(p["body"]["data"]).decode("utf-8")
-            # print(data)
-
+   
     shallnotpass_data = apply_shallnotpass(data)
 
     message.set_content(shallnotpass_data)
@@ -88,33 +94,66 @@ def create_message(original_draft):
     }
 
     return new_message
+    
+@app.route('/')
+def homepage():
+    if 'credentials' not in flask.session:
+        return flask.redirect('authorize')
 
-def main():
-    """Shows basic usage of the Gmail API.
-    Lists the user's Gmail drafts.
-    """
-    creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
-            creds = flow.run_local_server()
-        # Save the credentials for the next run
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
+    credentials = Credentials(
+        **flask.session['credentials'])
 
+    client = build(
+        API_SERVICE_NAME, API_VERSION, credentials=credentials)
+
+    create_draft(client)
+    return flask.render_template('index.html')
+    
+@app.route('/authorize')
+def authorize():
+    # flow instance manages OAuth 2.0 Authorization 
+    flow = InstalledAppFlow.from_client_secrets_file(
+        CLIENT_SECRETS_FILE, scopes=SCOPES)
+    flow.redirect_uri = flask.url_for('oauth2callback', _scheme='https', _external=True)
+    authorization_url, state = flow.authorization_url(
+        access_type='offline'
+    )
+
+    flask.session['state'] = state
+
+    return flask.redirect(authorization_url)
+
+@app.route('/oauth2callback')
+def oauth2callback():
+    state = flask.session['state']
+    flow = InstalledAppFlow.from_client_secrets_file(
+        CLIENT_SECRETS_FILE, scopes=SCOPES, state=state)
+    flow.redirect_uri = flask.url_for('oauth2callback', _scheme='https', _external=True)
+
+    # use server's response to fetch the OAuth 2.0 tokens.
+    auth_response_http = flask.request.url
+    if "http:" in auth_response_http:
+        auth_response_http = "https:" + auth_response_http[5:]
+    authorization_response = auth_response_http
+    flow.fetch_token(
+        authorization_response=authorization_response
+        )
+
+    # Store the credentials and token for the session
+    credentials = flow.credentials
+    flask.session['credentials'] = {
+        'token': credentials.token,
+        'refresh_token': credentials.refresh_token,
+        'token_uri': credentials.token_uri,
+        'client_id': credentials.client_id,
+        'client_secret': credentials.client_secret,
+        'scopes': credentials.scopes
+    }
+    return flask.redirect('/')
+
+def create_draft(service):  
     try:
         # Call the Gmail API
-        service = build('gmail', 'v1', credentials=creds)
-        # results = service.users().drafts().list(userId='me').execute()
         results = service.users().drafts().list(userId='me').execute()
         drafts = results.get('drafts', [])
 
@@ -130,20 +169,21 @@ def main():
         new_message = create_message(original_draft)
         print(new_message)
         
-        # new_draft = service.users().drafts().update(
-        #     userId='me', 
-        #     id = original_draft["id"],
-        #     body = new_message).execute()
+        new_draft = service.users().drafts().update(
+            userId='me', 
+            id = original_draft["id"],
+            body = new_message).execute()
 
         
-        # service.users().drafts().send(
-        #     userId='me',
-        #     body = new_draft).execute()
+        service.users().drafts().send(
+            userId='me',
+            body = new_draft).execute()
 
     except HttpError as error:
         # TODO(developer) - Handle errors from gmail API.
         print(f'An error occurred: {error}')
+    
+    return flask.render_template('index.html')
 
-
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    app.run()

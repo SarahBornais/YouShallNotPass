@@ -1,23 +1,31 @@
-﻿namespace YouShallNotPassBackend.Storage
+﻿using YouShallNotPassBackend.DataContracts;
+
+namespace YouShallNotPassBackend.Storage
 {
-    public class EntryMetadata
+    public record EntryMetadata
     {
-        public EntryMetadata(DateTime expirationDate, int maxAccessCount)
+        public Guid Id { get; init; }
+
+        public ByteString EntryKeyHash { get; init; } = Array.Empty<byte>();
+
+        public ContentType ContentType { get; init; }
+
+        public DateTime ExpirationDate { get; init; }
+
+        public int MaxAccessCount { get; init; }
+
+        public int TimesAccessed { get; init; } = 0;
+
+        public string? SecurityQuestion { get; init; }
+
+        public EntryMetadata IncrementTimesAccessed()
         {
-            ExpirationDate = expirationDate;
-            MaxAccessCount = maxAccessCount;
-            TimesAccessed = 0;
+            return this with { TimesAccessed = TimesAccessed + 1 };
         }
 
-        public DateTime ExpirationDate { get; }
-
-        public int MaxAccessCount { get; }
-
-        public int TimesAccessed { get; private set; }
-
-        public void IncrementTimesAccessed()
+        public bool IsEntryExpired()
         {
-            TimesAccessed++;
+            return ExpirationDate < DateTime.Now || TimesAccessed >= MaxAccessCount;
         }
     }
 }

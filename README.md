@@ -1,9 +1,17 @@
 # YouShallNotPass
 
-## Backend
-Backend is running on Azure at https://l.messenger.com/l.php?u=https%3A%2F%2Fyoushallnotpassbackend.azurewebsites.net%2F&h=AT1WGoO_nLa8Mv21u3fJzJ0510NY0cCwH6jesSxW5IFSv5C5_EkIUKs65aYXHlkXszfU3--uCqgD6Q5DzA8eOKewtq6Cs9LqnQq3sVDTDsJYxF9S5TSFp3EVs_1js_LxgqJ3oA
+A secret sharing platform with expiring links. Up and running here: https://youshallnotpass.org
 
-To run locally,
+[![Netlify Status](https://api.netlify.com/api/v1/badges/b06b9705-096f-49e4-adc8-78b6b75e7692/deploy-status)](https://app.netlify.com/sites/youshallnotpassfrontend/deploys)
+
+## Backend
+Backend is running on Azure at https://youshallnotpassbackend.azurewebsites.net
+
+To use the `POST /vault` endpoint, first get a token using `GET /security/authenticate`. This endpoint returns a token as a string with an expiration date. To get the token, you'll need to know your service name and secret key (message Madeline). 
+
+To use the token, add `Bearer [token]` to the `Authorization` header of your request ([Python Example](https://stackoverflow.com/questions/29931671/making-an-api-call-in-python-with-an-api-that-requires-a-bearer-token)). Before reusing the token, check if it's about to expire, and get a new one if it is.
+
+To run locally (message Madeline to setup the users database before proceeding),
 1. First, install [.Net 6](https://dotnet.microsoft.com/en-us/download)
 2. Define a server key
     1. Navigate to `Backend/Api/`
@@ -20,7 +28,7 @@ To run locally,
         2. Run `dotnet run`, the url will show in the terminal
         3. The root index is a swagger UI that shows all of the APIs and how to use them (see `/Backend/ContentType.cs` for the enum definitions)
 
-To run the Api Tests,
+To run the Api Tests (message Madeline to setup test authentication credentials before proceeding),
 1. First, install [.Net 6](https://dotnet.microsoft.com/en-us/download)
 2. If testing a local deployment, run the server locally
 3. Two options:
@@ -53,3 +61,44 @@ You will also see any lint errors in the console.
 
 Builds the app for production to the `build` folder.\
 It correctly bundles React in production mode and optimizes the build for the best performance.
+
+## Gmail Extension
+
+### Running the Python Server Locally Instructions 
+Ensure you have python, pip installed then run the following commands
+### `cd YouShallNotPass\gmailextension\sendmail`
+
+Create the virtual environment and activate it
+
+### `python -m venv venv`
+### `venv\Scripts\activate`
+
+Then, to restore the packages in the virtual environment
+
+### `pip install -r requirements.txt`
+
+(temporary step for October 29th testing) copy the credentials.json file into the sendmail folder
+
+Run the server 
+
+### `python app.py`
+
+### Add the gmail extension to chrome in developer mode
+Sign in to your Google Account on a Chrome device or Chrome browser on a Windows, Mac, or Linux computer.
+
+Go to chrome://extensions/.
+
+At the top right, turn on Developer mode.
+
+Click Load unpacked.
+
+Find and select extension folder: `\YouShallNotPass\gmailextension\chrome\templates`
+
+Open a new tab in Chrome then click the extension. You will see a button that says 'Run Shall Not Pass'
+
+### Sending an email
+	1. Construct an email in gmail, as you do normally, do not send the draft.
+	2. Protect text secrets starting with /shallnotpass and ending with /endshallnotpass
+	3. Use the 'Run Shall Not Pass' button from the chrome extension you added in the previous section.
+	4. You may be asked to sign in.
+
