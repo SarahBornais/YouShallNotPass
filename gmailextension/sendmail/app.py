@@ -45,7 +45,7 @@ def create_message(secret_url, secret_key):
     
 @app.route('/')
 def homepage():
-    if (flask.request.url != ''):
+    if (flask.request.url != 'https://youshallnotpassgmailserver.azurewebsites.net/'):
         requests_url = flask.request.url
 
     if 'credentials' not in flask.session:
@@ -103,7 +103,7 @@ def oauth2callback():
         'scopes': credentials.scopes
     }
     return flask.redirect('/')
-
+                  
 def create_draft(service, url):  
     try:
         # Call the Gmail API
