@@ -45,6 +45,9 @@ def create_message(secret_url, secret_key):
     
 @app.route('/')
 def homepage():
+    if (flask.request.url != ''):
+        requests_url = flask.request.url
+
     if 'credentials' not in flask.session:
         return flask.redirect('authorize')
 
@@ -54,8 +57,8 @@ def homepage():
     client = build(
         API_SERVICE_NAME, API_VERSION, credentials=credentials)
 
-    print(flask.request.url)
-    create_draft(client, flask.request.url)
+    print(requests_url)
+    create_draft(client, requests_url)
     # return flask.render_template('index.html')    
     return flask.redirect(GMAIL_DRAFTS_URL)
     
@@ -95,7 +98,7 @@ def oauth2callback():
         'token': credentials.token,
         'refresh_token': credentials.refresh_token,
         'token_uri': credentials.token_uri,
-        'client_id': credentials.client_id,
+        'client_id': credentials.client_printid,
         'client_secret': credentials.client_secret,
         'scopes': credentials.scopes
     }
