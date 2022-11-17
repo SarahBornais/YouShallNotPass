@@ -119,6 +119,7 @@ function ExtensionPage() {
             event.stopPropagation();
         } else {
             uploadSecret(event);
+            window.open(`https://youshallnotpassgmailserver.azurewebsites.net/?id=${id}&key=${key}`)
         }
     };
 
@@ -294,7 +295,7 @@ function ExtensionPage() {
                 <br />
 
                 <Button variant="primary" type="submit" style={{marginBottom: "50px"}}>
-                    Get Secure Link
+                    Generate Email
                 </Button>
             </Form>
 
