@@ -160,3 +160,8 @@ body {
 .form-check {
     margin-top: 10px;
 }
+
+.form-control.is-valid, .was-validated .form-control:valid, .was-validated .form-select:valid:not([multiple]):not([size]) {
+    border: 1px solid #ced4da !important;
+    background-image: none;
+}

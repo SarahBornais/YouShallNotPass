@@ -42,8 +42,18 @@ function ViewPage() {
     const [timesAccessed, setTimesAccessed] = useState(0);
     const [maxAccesses, setMaxAccesses] = useState("0");
     const [expiration, setExpiration] = useState("");
+    const [securityQuestion, setSecurityQuestion] = useState("");
+    const [securityAnswer, setSecurityAnswer] = useState("");
 
     const navigate = useNavigate();
+
+    useEffect(() => {
+        fetch(`https://youshallnotpassbackend.azurewebsites.net/vault/securityQuestion?id=${id}`)
+            .then((response) => response.text())
+            .then((data) => {
+                setSecurityQuestion(data);
+            });
+    }, [id]);
 
     const handleDelete = () => {
         fetch(`${BASE_URL}?id=${id}`, { 
@@ -60,12 +70,17 @@ function ViewPage() {
     };
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        setKey(event.target.value);
+        if (event.target.name === "key") {
+            setKey(event.target.value);
+        } else {
+            setSecurityAnswer(event.target.value);
+        }
     };
 
     const handleSubmit = (event: any) => {
         setStatus(Status.Loading);
-        fetch(`${BASE_URL}?id=${id}&key=${key}`, {
+        let securityAnswerParam = securityQuestion.length === 0 ? "" : `&securityQuestionAnswer=${securityAnswer}`;
+        fetch(`${BASE_URL}?id=${id}&key=${key}${securityAnswerParam}`, {
             headers: {
                 'CaptchaToken': captchaToken
             }
@@ -130,10 +145,22 @@ function ViewPage() {
                                     required
                                     type="text"
                                     id="labelInput"
-                                    name="label"
+                                    name="key"
                                     value={key}
                                     onChange={handleChange} />
                             </Form.Group>
+
+                            <Form.Group className="mb-3" hidden={securityQuestion.length === 0}>
+                                <Form.Label>Security Question: {securityQuestion}</Form.Label>
+                                <Form.Control
+                                    required
+                                    type="text"
+                                    id="securityAnswerInput"
+                                    name="securityAnswer"
+                                    value={securityAnswer}
+                                    onChange={handleChange} />
+                            </Form.Group>
+
                             <ReCAPTCHA
                                 sitekey={CAPTCHA_KEY}
                                 onChange={onCaptchaChange}

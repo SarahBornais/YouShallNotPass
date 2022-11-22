@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Alert, Button, Col, Form, Modal, Row, Toast, ToastContainer } from "react-bootstrap";
+import {Accordion, Alert, Button, Col, DropdownButton, Form, Modal, Row, Toast, ToastContainer} from "react-bootstrap";
+import Dropdown from 'react-bootstrap/Dropdown';
 import moment from 'moment';
 import * as Icon from 'react-bootstrap-icons';
 import ReCAPTCHA from "react-google-recaptcha";
@@ -9,8 +10,6 @@ function ExtensionPage() {
     const IMAGE_CONTENT = 1;
     const TEXT_CONTENT = 2;
     const BASE_URL = "https://youshallnotpassbackend.azurewebsites.net";
-    const API_KEY = "54a72ec5a0a29aa7b9d800d084c322dfd06bd7a645c6357b4a532603";
-    const SERVICE_NAME = "frontend";
     const CAPTCHA_KEY = "6Ldorv0iAAAAAPxWtrETU8WsSxhxbFl3ssxWGi51";
 
     const defaultExpiration = moment();
@@ -25,7 +24,7 @@ function ExtensionPage() {
         data: "",
         fileData: "",
         securityQuestion: "",
-        securityAnswer: ""
+        securityQuestionAnswer: ""
     });
 
     const [captchaToken, setCaptchaToken] = useState("");
@@ -85,8 +84,8 @@ function ExtensionPage() {
             }
             setSecretData({
                 ...secretData,
-                ["expirationDate"]: expiration.format("yyyy-MM-DD"),
-                ["expirationTime"]: expiration.format("HH:mm")
+                "expirationDate": expiration.format("yyyy-MM-DD"),
+                "expirationTime": expiration.format("HH:mm")
             });
         }
     }
@@ -98,8 +97,8 @@ function ExtensionPage() {
             const fileType = (reader.result as string).split(":")[1].split(";")[0];
             setSecretData({
                 ...secretData,
-                ["fileData"]: (reader.result as string).split("base64,")[1],
-                ["contentType"]: fileType.includes("image") ?
+                "fileData": (reader.result as string).split("base64,")[1],
+                "contentType": fileType.includes("image") ?
                     IMAGE_CONTENT : fileType.includes("pdf") ? PDF_CONTENT : TEXT_CONTENT
             });
         };
@@ -108,7 +107,7 @@ function ExtensionPage() {
 
     const toggleSecretManualEntry = () => {
         setSecretManualEntry(!secretManualEntry);
-        setSecretData({...secretData, ["contentType"]: TEXT_CONTENT});
+        setSecretData({...secretData, "contentType": TEXT_CONTENT});
     }
 
     const handleSubmit = (event: any) => {
@@ -132,7 +131,9 @@ function ExtensionPage() {
             "contentType": secretData.contentType,
             "label": secretData.label,
             "expirationDate": moment(`${secretData.expirationDate} ${secretData.expirationTime}`, 'YYYY-MM-DD HH:mm').toDate().toISOString(),
-            "data": secretData.fileData.length > 0 ? secretData.fileData : btoa(secretData["data"])
+            "data": secretData.fileData.length > 0 ? secretData.fileData : btoa(secretData["data"]),
+            "securityQuestion": secretData.securityQuestion,
+            "securityQuestionAnswer": secretData.securityQuestionAnswer
         };
         if (secretData.maxAccessCount.length > 0) {
             body["maxAccessCount"] = secretData.maxAccessCount;
@@ -140,36 +141,31 @@ function ExtensionPage() {
             body["maxAccessCount"] = 100000;
         }
 
-        fetch(`${BASE_URL}/security/authenticate?ServiceName=${SERVICE_NAME}&SecretKey=${API_KEY}`)
+        fetch(`${BASE_URL}/vault`, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+                'CaptchaToken': captchaToken
+            },
+            body: JSON.stringify(body)
+        })
             .then((response) => response.json())
-            .then((authData) => {
-                fetch(`${BASE_URL}/vault`, {
-                    method: "POST",
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authData.token}`,
-                        'CaptchaToken': captchaToken
-                    },
-                    body: JSON.stringify(body)
-                })
-                    .then((response) => response.json())
-                    .then((data) => {
-                        setId(data.id);
-                        setKey(data.key);
-                        setShow(true);
-                    })
-                    .catch(() => {
-                        setErrorMessage("Unexpected error saving secret. Please try again.");
-                        setToastShow(true);
-                    });
+            .then((data) => {
+                setId(data.id);
+                setKey(data.key);
+                setShow(true);
             })
+            .catch(() => {
+                setErrorMessage("Unexpected error saving secret. Please try again.");
+                setToastShow(true);
+            });
 
 
     };
 
     const copyLink = () => {
-        navigator.clipboard.writeText(`URL to view secret: https://youshallnotpass.org/view?id=${id}\n\nSecret key: ${key}`);
-        document.getElementById("copy-success")?.removeAttribute("hidden");
+        navigator.clipboard.writeText(`URL to view secret: https://youshallnotpass.org/view?id=${id}\n\nSecret key: ${key}`)
+            .then(r => document.getElementById("copy-success")?.removeAttribute("hidden"));
     }
 
     return (
@@ -192,100 +188,98 @@ function ExtensionPage() {
                     </Form.Control.Feedback>
                 </Form.Group>
 
-                <Form.Group className="mb-3">
-                    <Form.Label>Expiration</Form.Label>
-                    <Row>
-                        <Col>
-                            <Form.Select value={secretData.expirationType} onChange={onExpirySelectChange}>
-                                <option value="1HOUR">1 Hour</option>
-                                <option value="24HOURS">24 Hours</option>
-                                <option value="48HOURS">48 Hours</option>
-                                <option value="WEEK">1 Week</option>
-                                <option value="MONTH">1 Month</option>
-                                <option value="CUSTOM">Custom</option>
-                            </Form.Select>
-                        </Col>
-                        <Col>
-                            <Form.Control
-                                id="expiryDateInput"
-                                type="date"
-                                name="expirationDate"
-                                min={dateMin}
-                                value={secretData.expirationDate}
-                                disabled={!customDate}
-                                onChange={handleChange} />
-                        </Col>
-                        <Col>
-                            <Form.Control
-                                type="time"
-                                name="expirationTime"
-                                min={timeMin}
-                                value={secretData.expirationTime}
-                                disabled={!customDate}
-                                onChange={handleChange} />
-                            <Form.Control.Feedback type="invalid">
-                                Ensure time is in the future
-                            </Form.Control.Feedback>
-                        </Col>
-                    </Row>
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                    <Form.Label>Maximum Number of Accesses</Form.Label>
-                    <Form.Control
-                        type="number"
-                        placeholder="Unlimited"
-                        name="maxAccessCount"
-                        value={secretData.maxAccessCount}
-                        onChange={handleChange} />
-                </Form.Group>
-
                 <Form.Group className="mb-3" controlId="secretInput">
                     <Form.Label>Secret</Form.Label>
-                    <Form.Control required
-                                  type="file"
-                                  accept=".png,.pdf"
-                                  onChange={onFileUpload}
-                                  hidden={secretManualEntry}
-                                  disabled={secretManualEntry} />
                     <Form.Control required
                                   as="textarea" rows={3}
                                   name="data"
                                   value={secretData.data}
-                                  onChange={handleChange}
-                                  disabled={!secretManualEntry}
-                                  hidden={!secretManualEntry} />
+                                  onChange={handleChange} />
                     <Form.Control.Feedback type="invalid">
                         Please enter a secret
                     </Form.Control.Feedback>
-                    <Form.Check
-                        type="switch"
-                        id="custom-switch"
-                        label="Enter secret text manually"
-                        checked={secretManualEntry}
-                        onChange={toggleSecretManualEntry}
-                    />
                 </Form.Group>
 
-                <Form.Group className="mb-3">
-                    <Form.Label>Security Question</Form.Label>
-                    <Form.Control
-                        type="text"
-                        id="labelInput"
-                        name="label"
-                        value={secretData.securityQuestion}
-                        onChange={handleChange} />
-                </Form.Group>
+                <Accordion>
+                    <Accordion.Item eventKey="0">
+                        <Accordion.Header>Advanced Settings</Accordion.Header>
+                        <Accordion.Body>
+                            <Form.Group className="mb-3">
+                                <Form.Label>Expiration</Form.Label>
+                                <Row>
+                                    <Col>
+                                        <Form.Select value={secretData.expirationType} onChange={onExpirySelectChange}>
+                                            <option value="1HOUR">1 Hour</option>
+                                            <option value="24HOURS">24 Hours</option>
+                                            <option value="48HOURS">48 Hours</option>
+                                            <option value="WEEK">1 Week</option>
+                                            <option value="MONTH">1 Month</option>
+                                            <option value="CUSTOM">Custom</option>
+                                        </Form.Select>
+                                    </Col>
+                                    <Col>
+                                        <Form.Control
+                                            id="expiryDateInput"
+                                            type="date"
+                                            name="expirationDate"
+                                            min={dateMin}
+                                            value={secretData.expirationDate}
+                                            disabled={!customDate}
+                                            onChange={handleChange} />
+                                    </Col>
+                                    <Col>
+                                        <Form.Control
+                                            type="time"
+                                            name="expirationTime"
+                                            min={timeMin}
+                                            value={secretData.expirationTime}
+                                            disabled={!customDate}
+                                            onChange={handleChange} />
+                                        <Form.Control.Feedback type="invalid">
+                                            Ensure time is in the future
+                                        </Form.Control.Feedback>
+                                    </Col>
+                                </Row>
+                            </Form.Group>
 
-                <Form.Group className="mb-3">
-                    <Form.Label>Security Answer</Form.Label>
-                    <Form.Control
-                        type="text"
-                        id="labelInput"
-                        name="label"
-                        value={secretData.securityAnswer}
-                        onChange={handleChange} />
-                </Form.Group>
+                            <Form.Group className="mb-3">
+                                <Form.Label>Maximum Number of Accesses</Form.Label>
+                                <Form.Control
+                                    type="number"
+                                    placeholder="Unlimited"
+                                    name="maxAccessCount"
+                                    value={secretData.maxAccessCount}
+                                    onChange={handleChange} />
+                            </Form.Group>
+                            <Row>
+                                <Col xs={8}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Security Question</Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            id="securityQuestionInput"
+                                            name="securityQuestion"
+                                            value={secretData.securityQuestion}
+                                            onChange={handleChange} />
+                                    </Form.Group>
+                                </Col>
+                                <Col>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Security Answer</Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            id="securityAnswerInput"
+                                            name="securityQuestionAnswer"
+                                            value={secretData.securityQuestionAnswer}
+                                            onChange={handleChange} />
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+                        </Accordion.Body>
+                    </Accordion.Item>
+                </Accordion>
+
+                <br />
 
                 <ReCAPTCHA
                     sitekey={CAPTCHA_KEY}

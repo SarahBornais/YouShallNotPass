@@ -1,5 +1,16 @@
 import { useState } from "react";
-import {Alert, Button, Col, DropdownButton, Form, Modal, Row, Toast, ToastContainer} from "react-bootstrap";
+import {
+    Alert,
+    Button,
+    ButtonGroup,
+    Col,
+    DropdownButton,
+    Form,
+    Modal,
+    Row, Spinner,
+    Toast,
+    ToastContainer, ToggleButton
+} from "react-bootstrap";
 import Dropdown from 'react-bootstrap/Dropdown';
 import moment from 'moment';
 import * as Icon from 'react-bootstrap-icons';
@@ -10,9 +21,15 @@ function UploadPage() {
     const IMAGE_CONTENT = 1;
     const TEXT_CONTENT = 2;
     const BASE_URL = "https://youshallnotpassbackend.azurewebsites.net";
-    const API_KEY = "54a72ec5a0a29aa7b9d800d084c322dfd06bd7a645c6357b4a532603";
-    const SERVICE_NAME = "frontend";
     const CAPTCHA_KEY = "6Ldorv0iAAAAAPxWtrETU8WsSxhxbFl3ssxWGi51";
+
+    enum Status {
+        ShowForm,
+        Loading,
+        DisplayLink
+    }
+
+    const [status, setStatus] = useState(Status.ShowForm);
 
     const defaultExpiration = moment();
     defaultExpiration.add(1, "days");
@@ -26,7 +43,7 @@ function UploadPage() {
         data: "",
         fileData: "",
         securityQuestion: "",
-        securityAnswer: ""
+        securityQuestionAnswer: ""
     });
 
     const [captchaToken, setCaptchaToken] = useState("");
@@ -128,12 +145,15 @@ function UploadPage() {
     }
 
     const uploadSecret = (e: any) => {
+        setStatus(Status.Loading);
         e.preventDefault();
         const body: any = {
             "contentType": secretData.contentType,
             "label": secretData.label,
             "expirationDate": moment(`${secretData.expirationDate} ${secretData.expirationTime}`, 'YYYY-MM-DD HH:mm').toDate().toISOString(),
-            "data": secretData.fileData.length > 0 ? secretData.fileData : btoa(secretData["data"])
+            "data": secretData.fileData.length > 0 ? secretData.fileData : btoa(secretData["data"]),
+            "securityQuestion": secretData.securityQuestion,
+            "securityQuestionAnswer": secretData.securityQuestionAnswer
         };
         if (secretData.maxAccessCount.length > 0) {
             body["maxAccessCount"] = secretData.maxAccessCount;
@@ -141,29 +161,25 @@ function UploadPage() {
             body["maxAccessCount"] = 100000;
         }
 
-        fetch(`${BASE_URL}/security/authenticate?ServiceName=${SERVICE_NAME}&SecretKey=${API_KEY}`)
+        fetch(`${BASE_URL}/vault`, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+                'CaptchaToken': captchaToken
+            },
+            body: JSON.stringify(body)
+        })
             .then((response) => response.json())
-            .then((authData) => {
-                fetch(`${BASE_URL}/vault`, {
-                    method: "POST",
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authData.token}`,
-                        'CaptchaToken': captchaToken
-                    },
-                    body: JSON.stringify(body)
-                })
-                    .then((response) => response.json())
-                    .then((data) => {
-                        setId(data.id);
-                        setKey(data.key);
-                        setShow(true);
-                    })
-                    .catch(() => {
-                        setErrorMessage("Unexpected error saving secret. Please try again.");
-                        setToastShow(true);
-                    });
+            .then((data) => {
+                setId(data.id);
+                setKey(data.key);
+                setShow(true);
             })
+            .catch(() => {
+                setErrorMessage("Unexpected error saving secret. Please try again.");
+                setToastShow(true);
+            })
+            .finally(() => setStatus(Status.DisplayLink));
 
 
     };
@@ -173,7 +189,34 @@ function UploadPage() {
             .then(r => document.getElementById("copy-success")?.removeAttribute("hidden"));
     }
 
-    return (
+    const radios = [
+        { name: 'Text Entry', value: true },
+        { name: 'File Upload', value: false },
+    ];
+
+    return status === Status.Loading ? (
+        <div className="spin-container">
+            <Spinner animation="border" variant="primary" />
+        </div>
+        ) : status === Status.DisplayLink ? (
+        <div>
+            <h1>Secure Data Uploaded</h1>
+            <hr />
+            <Alert variant="primary">
+                <p><strong>URL to view secret:</strong> <a href={`/view?id=${id}&key=${key}`}>https://youshallnotpass.org/view?id={id}</a></p>
+                <p style={{
+                    marginBottom: "0px"
+                }}><strong>Secret key:</strong> {key}</p>
+            </Alert>
+            <div style={{
+                display: "flex",
+                justifyContent: "baseline"
+            }}>
+                <Button variant="primary" onClick={copyLink}>Copy</Button>
+                <p hidden id="copy-success" className="copy-success"><Icon.CheckCircleFill color="green" size={16} /> Copied to clipboard</p>
+            </div>
+        </div>
+        ) : (
         <div>
             <h1>Upload Secure Data</h1>
             <hr />
@@ -243,55 +286,73 @@ function UploadPage() {
 
                 <Form.Group className="mb-3" controlId="secretInput">
                     <Form.Label>Secret</Form.Label>
-                    <DropdownButton id="dropdown-basic-button" title="Input Type">
-                        <Dropdown.Item href="#/action-1">File Upload</Dropdown.Item>
-                        <Dropdown.Item href="#/action-2">Raw Text</Dropdown.Item>
-                    </DropdownButton>
+
                     <br />
+
+                    <ButtonGroup>
+                        {radios.map((radio, idx) => (
+                            <ToggleButton
+                                key={idx}
+                                id={`radio-${idx}`}
+                                type="radio"
+                                variant={"outline-primary"}
+                                name="radio"
+                                value={radio.value ? "" : ""}
+                                checked={secretManualEntry !== radio.value}
+                                onChange={(e) => toggleSecretManualEntry()}
+                            >
+                                {radio.name}
+                            </ToggleButton>
+                        ))}
+                    </ButtonGroup>
+
+                    <br />
+                    <br />
+
                     <Form.Control required
                                   type="file"
                                   accept=".png,.pdf"
                                   onChange={onFileUpload}
-                                  hidden={secretManualEntry}
-                                  disabled={secretManualEntry} />
+                                  hidden={!secretManualEntry}
+                                  disabled={!secretManualEntry} />
                     <Form.Control required
                                   as="textarea" rows={3}
                                   name="data"
                                   value={secretData.data}
                                   onChange={handleChange}
-                                  disabled={!secretManualEntry}
-                                  hidden={!secretManualEntry} />
+                                  disabled={secretManualEntry}
+                                  hidden={secretManualEntry} />
                     <Form.Control.Feedback type="invalid">
                         Please enter a secret
                     </Form.Control.Feedback>
-                    <Form.Check
-                        type="switch"
-                        id="custom-switch"
-                        label="Enter secret text manually"
-                        checked={secretManualEntry}
-                        onChange={toggleSecretManualEntry}
-                    />
+
+
                 </Form.Group>
 
-                <Form.Group className="mb-3">
-                    <Form.Label>Security Question</Form.Label>
-                    <Form.Control
-                        type="text"
-                        id="labelInput"
-                        name="label"
-                        value={secretData.securityQuestion}
-                        onChange={handleChange} />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                    <Form.Label>Security Answer</Form.Label>
-                    <Form.Control
-                        type="text"
-                        id="labelInput"
-                        name="label"
-                        value={secretData.securityAnswer}
-                        onChange={handleChange} />
-                </Form.Group>
+                <Row>
+                    <Col xs={8}>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Security Question</Form.Label>
+                            <Form.Control
+                                type="text"
+                                id="securityQuestionInput"
+                                name="securityQuestion"
+                                value={secretData.securityQuestion}
+                                onChange={handleChange} />
+                        </Form.Group>
+                    </Col>
+                    <Col>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Security Answer</Form.Label>
+                            <Form.Control
+                                type="text"
+                                id="securityAnswerInput"
+                                name="securityQuestionAnswer"
+                                value={secretData.securityQuestionAnswer}
+                                onChange={handleChange} />
+                        </Form.Group>
+                    </Col>
+                </Row>
 
                 <ReCAPTCHA
                     sitekey={CAPTCHA_KEY}
