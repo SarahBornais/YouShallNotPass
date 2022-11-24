@@ -118,6 +118,7 @@ function ExtensionPage() {
             event.stopPropagation();
         } else {
             uploadSecret(event);
+            window.open(`https://mail.google.com/mail/u/0/?fs=1&tf=cm&to&su=&body=The+sender+has+sent+you+encrypted+sensitive+data.+Click+on+the+link:+https://youshallnotpass.org/view?id=${id}+and+input+the+key:+${key}+to+access+the+secret.`)
         }
     };
 
@@ -288,11 +289,11 @@ function ExtensionPage() {
                 <br />
 
                 <Button variant="primary" type="submit" style={{marginBottom: "50px"}}>
-                    Get Secure Link
+                    Create Email Draft
                 </Button>
             </Form>
 
-            <Modal show={show} dialogClassName="modal-90w" onHide={handleClose}>
+            {/* <Modal show={show} dialogClassName="modal-90w" onHide={handleClose}>
                 <Modal.Header closeButton>
                     <Modal.Title>Secure Link</Modal.Title>
                 </Modal.Header>
@@ -307,7 +308,7 @@ function ExtensionPage() {
                     <Button variant="default" onClick={handleClose}>Close</Button>
                     <Button variant="primary" onClick={copyLink}>Copy</Button>
                 </Modal.Footer>
-            </Modal>
+            </Modal> */}
 
             <ToastContainer className="p-3" position="top-center">
                 <Toast show={toastShow}>
