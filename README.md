@@ -64,25 +64,6 @@ It correctly bundles React in production mode and optimizes the build for the be
 
 ## Gmail Extension
 
-### Running the Python Server Locally Instructions 
-Ensure you have python, pip installed then run the following commands
-### `cd YouShallNotPass\gmailextension\sendmail`
-
-Create the virtual environment and activate it
-
-### `python -m venv venv`
-### `venv\Scripts\activate`
-
-Then, to restore the packages in the virtual environment
-
-### `pip install -r requirements.txt`
-
-(temporary step for October 29th testing) copy the credentials.json file into the sendmail folder
-
-Run the server 
-
-### `python app.py`
-
 ### Add the gmail extension to chrome in developer mode
 Sign in to your Google Account on a Chrome device or Chrome browser on a Windows, Mac, or Linux computer.
 
@@ -94,11 +75,4 @@ Click Load unpacked.
 
 Find and select extension folder: `\YouShallNotPass\gmailextension\chrome\templates`
 
-Open a new tab in Chrome then click the extension. You will see a button that says 'Run Shall Not Pass'
-
-### Sending an email
-	1. Construct an email in gmail, as you do normally, do not send the draft.
-	2. Protect text secrets starting with /shallnotpass and ending with /endshallnotpass
-	3. Use the 'Run Shall Not Pass' button from the chrome extension you added in the previous section.
-	4. You may be asked to sign in.
-
+Open a new tab in Chrome then click the extension. 
