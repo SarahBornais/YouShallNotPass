@@ -182,6 +182,12 @@ namespace YouShallNotPassBackend.Controllers
                 return BadRequest("Improperly formated data in content parameter");
             }
 
+            if (content.Data.Length > 10 * 1024)
+            {
+                logger.LogInformation("{path}: Bad request because data exceeds 10kB, label {label}", path, content?.Label);
+                return BadRequest("Data must be less then 10kB");
+            }
+
             try
             {
                 logger.LogInformation("{path}: Received request with label {label}", path, content.Label);
